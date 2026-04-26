@@ -1,0 +1,14 @@
+# Set kernel boot arguments: serial console on UART0 at 115200 baud, root filesystem on SD card second partition (ext4), read-write
+setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rw rootwait earlyprintk
+
+# Load the FPGA bitstream from the SD card boot partition and configure the FPGA fabric via the HPS FPGA Manager
+load mmc 0:1 ${loadaddr} soc_system.rbf
+fpga load 0 ${loadaddr} ${filesize}
+
+# Enable the HPS-to-FPGA and FPGA-to-HPS bridges so the CPU can communicate with the FPGA logic
+bridge enable
+
+# Load the kernel image and Device Tree Blob, then boot
+load mmc 0:1 ${kernel_addr_r} zImage
+load mmc 0:1 ${fdt_addr_r} socfpga.dtb
+bootz ${kernel_addr_r} - ${fdt_addr_r}
