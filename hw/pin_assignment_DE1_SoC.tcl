@@ -1,0 +1,1 @@
+../repos/AlteraFPGATopLevelFiles/DE1-SoC/pin_assignment_DE1_SoC.tcl
