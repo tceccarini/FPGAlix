@@ -1,3 +1,4 @@
 
 sdcard/boot_partition/u-boot.scr
 sdcard/boot_partition/soc_system.rbf
+/sdcard/images

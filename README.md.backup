@@ -1,19 +1,5 @@
 # FPGAlix
 
-> **Work in progress:** This documentation is still being defined and developed. Content may be incomplete or subject to change.
-
-## Development environment
-
-The setup used for this project:
-
-| Component | Version / Details |
-|-----------|------------------|
-| OS | Ubuntu 22.04 LTS |
-| Quartus | 22.1 |
-| ARM toolchain | `arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-linux-gnueabihf` |
-
-Both Quartus and the ARM toolchain are installed in `~/Programs`.
-
 ## Post-build step: convert SOF to RBF
 
 After modifying and completing the hardware design workflow in Quartus + QSys (Platform Designer), run the following command from the root of this repository to convert the compiled FPGA bitstream into the raw binary format required for SD card boot:
@@ -47,7 +33,7 @@ The script reads the XML handoff data exported by Quartus and generates the foll
 
 These files must be regenerated every time the HPS subsystem is modified in QSys (Platform Designer), so that U-Boot initializes the hardware with settings that exactly match the compiled design.
 
-### Compiling U-Boot
+## Compiling U-Boot
 
 Move into the U-Boot source directory and set the required environment variables:
 
@@ -390,31 +376,23 @@ Set the switches as follows:
 
 With MSEL[4:0] = `00000`, the FPGA is configured by the HPS via the FPGA Manager: during boot, U-Boot loads `soc_system.rbf` from the SD card boot partition and programs the FPGA fabric before handing off to the Linux kernel.
 
-### Inserting the SD card and connecting the serial console
-
-1. Insert the SD card into the slot on the underside of the board.
-2. Connect a mini USB cable between the **UART-to-USB** connector on the board (labelled on the PCB) and your PC.
-
-The board exposes a serial console at **115200 baud, 8N1, no flow control**. Use a terminal emulator to connect:
-
-- **Windows:** [TeraTerm](https://teratermproject.github.io/) is a good option — select the COM port that appears in Device Manager under *Ports (COM & LPT)* when you plug in the cable.
-- **Linux:** `picocom` is a lightweight choice — install with `sudo apt install picocom`, then find the device with:
-
-  ```bash
-  dmesg | grep tty
-  ```
-
-  The board typically appears as `/dev/ttyUSB0`. Connect with:
-
-  ```bash
-  picocom -b 115200 /dev/ttyUSB0
-  ```
-
-  > **Note:** If access is denied, either run with `sudo` or adjust the permissions on `/dev/ttyUSB0`.
-
-3. Power on the board — the boot log should appear in the terminal immediately.
-
 ---
 
 [^1]: In case of Ethernet connection instability at runtime, verify the MAC/PHY parameters (clock delays, PHY address, `phy-mode`) in `socfpga_cyclone5_fpgalix.dts` and rebuild the DTB.
 
+## Compiling the boot script
+
+The file `sw/boot.script` is a human-readable U-Boot script that defines the boot sequence (loading the kernel, DTB, and RBF from the SD card). It must be compiled into a binary image that U-Boot can execute.
+
+Move into the `sw/` directory and run `mkimage`:
+
+```bash
+cd sw/
+mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "Boot" -d boot.script ../sdcard/boot_partition/u-boot.scr
+```
+
+The output `sdcard/boot_partition/u-boot.scr` is the compiled boot script, ready to be read by U-Boot at startup. This step must be repeated every time `sw/boot.script` is modified.
+
+---
+
+[^1]: In case of Ethernet connection instability at runtime, verify the MAC/PHY parameters (clock delays, PHY address, `phy-mode`) in `socfpga_cyclone5_fpgalix.dts` and rebuild the DTB.
