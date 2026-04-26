@@ -10,6 +10,6 @@
 [submodule "AlteraFPGATopLevelFiles"]
 	path = repos/AlteraFPGATopLevelFiles
 	url = https://github.com/tceccarini/Fork_AlteraFPGATopLevelFiles
-[submodule "repos/repos/linux-socfpga"]
-	path = repos/repos/linux-socfpga
+[submodule "repos/linux-socfpga"]
+	path = repos/linux-socfpga
 	url = https://github.com/tceccarini/Fork_linux-socfpga
