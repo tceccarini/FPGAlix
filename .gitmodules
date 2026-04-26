@@ -2,11 +2,14 @@
 	path = repos/buildroot
 	url = https://github.com/tceccarini/Fork_buildroot
 [submodule "u-boot-socfpga"]
-	path = u-boot-socfpga
+	path = repos/u-boot-socfpga
 	url = https://github.com/tceccarini/Fork_u-boot-socfpga
 [submodule "ghrd-socfpga"]
-	path = ghrd-socfpga
+	path = repos/ghrd-socfpga
 	url = https://github.com/tceccarini/Fork_ghrd-socfpga
 [submodule "AlteraFPGATopLevelFiles"]
-	path = AlteraFPGATopLevelFiles
+	path = repos/AlteraFPGATopLevelFiles
 	url = https://github.com/tceccarini/Fork_AlteraFPGATopLevelFiles
+[submodule "repos/repos/linux-socfpga"]
+	path = repos/repos/linux-socfpga
+	url = https://github.com/tceccarini/Fork_linux-socfpga
