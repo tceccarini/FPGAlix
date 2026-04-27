@@ -57,14 +57,23 @@ export ARCH=arm
 export CROSS_COMPILE=arm-none-linux-gnueabihf-
 ```
 
-Load the DE1-SoC default configuration and build:
+Load the Cyclone V base configuration, then open the interactive menu to select the correct board target:
 
 ```bash
 make socfpga_cyclone5_defconfig
-make -j$(nproc)
+make menuconfig
 ```
 
-> ~~`make socfpga_de1_soc_defconfig`~~ — da verificare quale dei due è corretto per la DE1-SoC
+In the menuconfig interface navigate to:
+**ARM architecture → Altera SOCFPGA board select → Terasic DE1-SoC (Cyclone V)**
+
+When exiting menuconfig, confirm **Yes** when prompted to save — otherwise the board selection is lost and the build will use the wrong target.
+
+Then build:
+
+```bash
+make -j$(nproc)
+```
 
 The build produces `repos/u-boot-socfpga/u-boot-with-spl.sfp`, a combined image containing the SPL (Secondary Program Loader) and U-Boot proper in the Altera SoCFPGA format, ready to be written to the SD card.
 
@@ -104,6 +113,8 @@ Optionally, open the interactive configuration menu to customize the kernel (no 
 ```bash
 make menuconfig  # optional
 ```
+
+When exiting menuconfig, confirm **Yes** when prompted to save.
 
 Build the compressed kernel image:
 
@@ -196,6 +207,8 @@ Enable the following options, navigating the menu as indicated:
 
 **Target packages → Text editors and viewers**
 - `nano` → `Y`
+
+When exiting menuconfig, confirm **Yes** when prompted to save.
 
 Once configured, build the entire system:
 
