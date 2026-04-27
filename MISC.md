@@ -98,19 +98,24 @@ Run from the root of the repository:
 quartus_cpf -c hw/quartus/output_files/FPGAlix.sof /tmp/fpga_bitstream.rbf
 ```
 
-Then copy it to the board home directory:
+Then transfer it to the board (lands in root's home directory):
 
 ```bash
-scp /tmp/fpga_bitstream.rbf root@<ip_board>:
+scp /tmp/fpga_bitstream.rbf root@<ip_board>:~
 ```
 
 ### Program the FPGA fabric (on the board)
 
-Copy the `.rbf` to the board (e.g. via `scp`), then:
+*See also: bridge unbind/rebind note at the end of this section.*
+
+Once the file is on the board:
 
 ```bash
-# Copy the bitstream to the firmware directory
-cp soc_system.rbf /lib/firmware/
+# Backup the current bitstream
+mv /lib/firmware/soc_system.rbf /lib/firmware/soc_system.rbf.old
+
+# Move and rename the new bitstream to the expected name
+mv ~/fpga_bitstream.rbf /lib/firmware/soc_system.rbf
 
 # Program the FPGA fabric
 echo 0 > /sys/class/fpga_manager/fpga0/flags
@@ -120,58 +125,61 @@ echo soc_system.rbf > /sys/class/fpga_manager/fpga0/firmware
 cat /sys/class/fpga_manager/fpga0/state
 ```
 
-> **Note:** if Linux has drivers attached to HPS-to-FPGA bridges, unload them before
-> reprogramming and reload them after, otherwise they may crash.
->
-> First, discover the bridge names from the live device tree:
->
-> ```bash
-> ls /sys/bus/platform/drivers/altera-hps2fpga-bridge/
-> ls /sys/bus/platform/drivers/altera-fpga2hps-bridge/
-> ```
->
-> Each entry listed (e.g. `ff400000.fpga_bridge`) is a bridge name to use in the commands below.
-> Then unbind all of them before reprogramming and rebind after:
->
-> ```bash
-> # Unbind (repeat for each name found above)
-> echo <name> > /sys/bus/platform/drivers/altera-hps2fpga-bridge/unbind
-> echo <name> > /sys/bus/platform/drivers/altera-fpga2hps-bridge/unbind
->
-> # ... reprogram here ...
->
-> # Rebind
-> echo <name> > /sys/bus/platform/drivers/altera-hps2fpga-bridge/bind
-> echo <name> > /sys/bus/platform/drivers/altera-fpga2hps-bridge/bind
-> ```
->
-> Alternatively, store the names in variables for easy copy-paste:
->
-> First, discover the bridge names from the live device tree and store them in variables:
->
-> ```bash
-> H2F_LW=$(ls /sys/bus/platform/drivers/altera-hps2fpga-bridge/ | grep fpga_bridge | head -1)
-> H2F=$(ls /sys/bus/platform/drivers/altera-hps2fpga-bridge/  | grep fpga_bridge | tail -1)
-> F2H=$(ls /sys/bus/platform/drivers/altera-fpga2hps-bridge/  | grep fpga_bridge | head -1)
-> ```
->
-> Then unbind before reprogramming and rebind after:
->
-> ```bash
-> # Unbind
-> echo $H2F_LW > /sys/bus/platform/drivers/altera-hps2fpga-bridge/unbind
-> echo $H2F    > /sys/bus/platform/drivers/altera-hps2fpga-bridge/unbind
-> echo $F2H    > /sys/bus/platform/drivers/altera-fpga2hps-bridge/unbind
->
-> # ... reprogram here ...
->
-> # Rebind
-> echo $H2F_LW > /sys/bus/platform/drivers/altera-hps2fpga-bridge/bind
-> echo $H2F    > /sys/bus/platform/drivers/altera-hps2fpga-bridge/bind
-> echo $F2H    > /sys/bus/platform/drivers/altera-fpga2hps-bridge/bind
-> ```
->
-> If a bridge has no driver bound the command will fail silently — no harm done.
+> **Note:** `/lib/firmware/soc_system.rbf` is on the rootfs (ext4) and persists across reboots.
+> However, Linux does **not** reprogram the FPGA automatically at boot — that is done exclusively
+> by U-Boot, which loads `soc_system.rbf` from the FAT32 boot partition (p1). The file in
+> `/lib/firmware/` is only used when you manually trigger the FPGA Manager.
+
+```bash
+```
+
+### HPS-to-FPGA bridge unbind/rebind
+
+If Linux has drivers attached to the HPS-to-FPGA bridges, unbind them before reprogramming and rebind after, otherwise they may crash.
+
+First, discover the bridge names from the live device tree:
+
+```bash
+ls /sys/bus/platform/drivers/altera-hps2fpga-bridge/
+ls /sys/bus/platform/drivers/altera-fpga2hps-bridge/
+```
+
+Each entry listed (e.g. `ff400000.fpga_bridge`) is a bridge name to use in the commands below.
+Then unbind all of them before reprogramming and rebind after:
+
+```bash
+# Unbind (repeat for each name found above)
+echo <name> > /sys/bus/platform/drivers/altera-hps2fpga-bridge/unbind
+echo <name> > /sys/bus/platform/drivers/altera-fpga2hps-bridge/unbind
+
+# ... reprogram here ...
+
+# Rebind
+echo <name> > /sys/bus/platform/drivers/altera-hps2fpga-bridge/bind
+echo <name> > /sys/bus/platform/drivers/altera-fpga2hps-bridge/bind
+```
+
+Alternatively, store the names in variables for easy copy-paste:
+
+```bash
+H2F_LW=$(ls /sys/bus/platform/drivers/altera-hps2fpga-bridge/ | grep fpga_bridge | head -1)
+H2F=$(ls /sys/bus/platform/drivers/altera-hps2fpga-bridge/  | grep fpga_bridge | tail -1)
+F2H=$(ls /sys/bus/platform/drivers/altera-fpga2hps-bridge/  | grep fpga_bridge | head -1)
+
+# Unbind
+echo $H2F_LW > /sys/bus/platform/drivers/altera-hps2fpga-bridge/unbind
+echo $H2F    > /sys/bus/platform/drivers/altera-hps2fpga-bridge/unbind
+echo $F2H    > /sys/bus/platform/drivers/altera-fpga2hps-bridge/unbind
+
+# ... reprogram here ...
+
+# Rebind
+echo $H2F_LW > /sys/bus/platform/drivers/altera-hps2fpga-bridge/bind
+echo $H2F    > /sys/bus/platform/drivers/altera-hps2fpga-bridge/bind
+echo $F2H    > /sys/bus/platform/drivers/altera-fpga2hps-bridge/bind
+```
+
+If a bridge has no driver bound the command will fail silently — no harm done.
 
 ### Make the bitstream persistent across reboots
 
