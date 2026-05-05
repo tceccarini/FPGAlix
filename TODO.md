@@ -89,6 +89,40 @@
   export PATH="$PATH:/home/wheel/Programs/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-linux-gnueabihf/bin"
   ```
 
+- [x] Configure USB Blaster on Ubuntu 22.04
+
+  The USB Blaster is not accessible without a udev rule — Quartus will show "No JTAG hardware" without this step.
+
+  Create the udev rule:
+
+  ```bash
+  sudo nano /etc/udev/rules.d/51-usbblaster.rules
+  ```
+
+  Paste the following:
+
+  ```
+  SUBSYSTEM=="usb", ATTR{idVendor}=="09fb", ATTR{idProduct}=="6001", MODE="0666", GROUP="plugdev"
+  SUBSYSTEM=="usb", ATTR{idVendor}=="09fb", ATTR{idProduct}=="6002", MODE="0666", GROUP="plugdev"
+  SUBSYSTEM=="usb", ATTR{idVendor}=="09fb", ATTR{idProduct}=="6003", MODE="0666", GROUP="plugdev"
+  ```
+
+  Reload udev and add the user to the `plugdev` group:
+
+  ```bash
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger
+  sudo usermod -aG plugdev $USER
+  ```
+
+  Log out and back in for the group change to take effect, then replug the USB Blaster. Verify with:
+
+  ```bash
+  jtagconfig
+  ```
+
+  Should print something like `1) USB-Blaster [...]`.
+
 - [ ] Review and finalize `README.md`
 
 ## Kernel
