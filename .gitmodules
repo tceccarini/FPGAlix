@@ -13,3 +13,6 @@
 [submodule "repos/linux-socfpga"]
 	path = repos/linux-socfpga
 	url = https://github.com/tceccarini/Fork_linux-socfpga
+[submodule "repos/sopc2dts"]
+	path = repos/sopc2dts
+	url = https://github.com/tceccarini/Fork_sopc2dts.git

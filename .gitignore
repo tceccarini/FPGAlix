@@ -1,4 +1,47 @@
-
+# SD card generated artifacts
 sdcard/boot_partition/u-boot.scr
 sdcard/boot_partition/soc_system.rbf
-/sdcard/images
+sdcard/images/
+
+# Quartus compilation database
+hw/quartus/db/
+hw/quartus/incremental_db/
+
+# Platform Designer generated files
+hw/quartus/.qsys_edit/
+hw/quartus/soc_system/
+hw/quartus/soc_system.sopcinfo
+hw/quartus/hps_isw_handoff/
+
+# Quartus compilation output
+hw/quartus/output_files/
+hw/quartus/simulation/
+
+# Quartus generated reports and logs
+hw/quartus/*.rpt
+hw/quartus/*.summary
+hw/quartus/*.done
+hw/quartus/*.smsg
+hw/quartus/*.eqn
+hw/quartus/*.pin
+hw/quartus/*.jdi
+hw/quartus/*.qar
+hw/quartus/*.qarlog
+hw/quartus/*.qws
+
+# Quartus generated text/csv reports
+hw/quartus/c5_pin_model_dump.txt
+hw/quartus/hps_sdram_p0_all_pins.txt
+hw/quartus/hps_sdram_p0_summary.csv
+
+# Kernel module build artifacts
+sw/**/.*.cmd
+sw/**/*.o
+sw/**/*.ko
+sw/**/*.mod
+sw/**/*.mod.c
+sw/**/modules.order
+sw/**/Module.symvers
+
+# Editor backup files
+*~

@@ -85,7 +85,7 @@
   export QUARTUS_ROOTDIR="/home/wheel/Programs/Altera/22.1/quartus/"
   export QSYS_ROOTDIR="${QUARTUS_ROOTDIR}/sopc_builder/bin"
   export PATH="$PATH:${QUARTUS_ROOTDIR}/bin"
-  export PATH="$PATH:/home/wheel/Programs/Altera/22.1/quartus/sopc_builder/bin/"
+  export PATH="$PATH:${QSYS_ROOTDIR}"
   export PATH="$PATH:/home/wheel/Programs/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-linux-gnueabihf/bin"
   ```
 
@@ -127,7 +127,7 @@
 
 ## Kernel
 
-- [ ] Enable LED Heartbeat Trigger in `make menuconfig`:
+- [x] Enable LED Heartbeat Trigger in `make menuconfig`:
   `Device Drivers → LED Support → LED Trigger support → LED Heartbeat Trigger`
 
 ## System configuration

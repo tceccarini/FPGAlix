@@ -13,7 +13,7 @@
    {
       datum _sortIndex
       {
-         value = "12";
+         value = "15";
          type = "int";
       }
    }
@@ -33,11 +33,27 @@
          type = "int";
       }
    }
+   element counter_source_0
+   {
+      datum _sortIndex
+      {
+         value = "10";
+         type = "int";
+      }
+   }
+   element f2sdram_only_master
+   {
+      datum _sortIndex
+      {
+         value = "4";
+         type = "int";
+      }
+   }
    element fpga_button_pio
    {
       datum _sortIndex
       {
-         value = "9";
+         value = "12";
          type = "int";
       }
    }
@@ -53,7 +69,7 @@
    {
       datum _sortIndex
       {
-         value = "10";
+         value = "13";
          type = "int";
       }
    }
@@ -69,7 +85,7 @@
    {
       datum _sortIndex
       {
-         value = "11";
+         value = "14";
          type = "int";
       }
    }
@@ -85,7 +101,7 @@
    {
       datum _sortIndex
       {
-         value = "4";
+         value = "5";
          type = "int";
       }
    }
@@ -125,7 +141,7 @@
    {
       datum _sortIndex
       {
-         value = "8";
+         value = "11";
          type = "int";
       }
    }
@@ -141,7 +157,7 @@
    {
       datum _sortIndex
       {
-         value = "6";
+         value = "7";
          type = "int";
       }
    }
@@ -153,11 +169,43 @@
          type = "String";
       }
    }
+   element msgdma_0
+   {
+      datum _sortIndex
+      {
+         value = "9";
+         type = "int";
+      }
+   }
+   element msgdma_0.csr
+   {
+      datum baseAddress
+      {
+         value = "8192";
+         type = "String";
+      }
+   }
+   element msgdma_0.descriptor_slave
+   {
+      datum baseAddress
+      {
+         value = "8224";
+         type = "String";
+      }
+   }
+   element msgdma_0.response
+   {
+      datum baseAddress
+      {
+         value = "8256";
+         type = "String";
+      }
+   }
    element onchip_memory2_0
    {
       datum _sortIndex
       {
-         value = "5";
+         value = "6";
          type = "int";
       }
    }
@@ -169,11 +217,43 @@
          type = "String";
       }
    }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element sysid_qsys_0
    {
       datum _sortIndex
       {
-         value = "7";
+         value = "8";
          type = "int";
       }
    }
@@ -262,13 +342,36 @@
    enabled="1">
   <parameter name="CLOCK_RATE" value="50000000" />
   <parameter name="INTR_TYPE" value="0" />
-  <parameter name="IRQ_PORT_CNT" value="3" />
+  <parameter name="IRQ_PORT_CNT" value="4" />
  </module>
  <module name="clk_0" kind="clock_source" version="22.1" enabled="1">
   <parameter name="clockFrequency" value="50000000" />
   <parameter name="clockFrequencyKnown" value="true" />
   <parameter name="inputClockFrequency" value="0" />
   <parameter name="resetSynchronousEdges" value="NONE" />
+ </module>
+ <module
+   name="counter_source_0"
+   kind="counter_source"
+   version="1.0"
+   enabled="1">
+  <parameter name="FRAME_BEATS" value="38400" />
+  <parameter name="INCREMENT" value="1" />
+  <parameter name="INITIAL_VALUE" value="0" />
+ </module>
+ <module
+   name="f2sdram_only_master"
+   kind="altera_jtag_avalon_master"
+   version="22.1"
+   enabled="1">
+  <parameter name="AUTO_DEVICE" value="5CSEMA5F31C6" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
+  <parameter name="COMPONENT_CLOCK" value="0" />
+  <parameter name="FAST_VER" value="0" />
+  <parameter name="FIFO_DEPTHS" value="2" />
+  <parameter name="PLI_PORT" value="50000" />
+  <parameter name="USE_PLI" value="0" />
  </module>
  <module
    name="fpga_button_pio"
@@ -435,8 +538,8 @@
   <parameter name="EXPORT_AFI_HALF_CLK" value="false" />
   <parameter name="EXTRA_SETTINGS" value="" />
   <parameter name="F2H_AXI_CLOCK_FREQ" value="50000000" />
-  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="100" />
-  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="100" />
+  <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="50000000" />
+  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="50000000" />
   <parameter name="F2H_SDRAM2_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM3_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM4_CLOCK_FREQ" value="100" />
@@ -448,8 +551,8 @@
   <parameter name="F2SCLK_SDRAMCLK_Enable" value="false" />
   <parameter name="F2SCLK_SDRAMCLK_FREQ" value="0" />
   <parameter name="F2SCLK_WARMRST_Enable" value="true" />
-  <parameter name="F2SDRAM_Type" value="" />
-  <parameter name="F2SDRAM_Width" value="" />
+  <parameter name="F2SDRAM_Type">Avalon-MM Bidirectional,Avalon-MM Write-Only</parameter>
+  <parameter name="F2SDRAM_Width" value="128,64" />
   <parameter name="F2SINTERRUPT_Enable" value="true" />
   <parameter name="F2S_Width" value="2" />
   <parameter name="FIX_READ_LATENCY" value="8" />
@@ -934,6 +1037,49 @@
   <parameter name="USE_AUTO_ADDRESS_WIDTH" value="1" />
   <parameter name="USE_RESPONSE" value="0" />
  </module>
+ <module name="msgdma_0" kind="altera_msgdma" version="22.1" enabled="1">
+  <parameter name="AUTO_DESCRIPTOR_READ_MASTER_ADDRESS_MAP" value="" />
+  <parameter
+     name="AUTO_DESCRIPTOR_READ_MASTER_ADDRESS_WIDTH"
+     value="AddressWidth = -1" />
+  <parameter name="AUTO_DESCRIPTOR_WRITE_MASTER_ADDRESS_MAP" value="" />
+  <parameter
+     name="AUTO_DESCRIPTOR_WRITE_MASTER_ADDRESS_WIDTH"
+     value="AddressWidth = -1" />
+  <parameter name="AUTO_DEVICE" value="5CSEMA5F31C6" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
+  <parameter name="AUTO_MM_READ_ADDRESS_MAP" value="" />
+  <parameter name="AUTO_MM_READ_ADDRESS_WIDTH" value="AddressWidth = -1" />
+  <parameter name="AUTO_MM_WRITE_ADDRESS_MAP"><![CDATA[<address-map><slave name='hps_0_bridges.f2h_sdram1_data' start='0x0' end='0x100000000' /></address-map>]]></parameter>
+  <parameter name="AUTO_MM_WRITE_ADDRESS_WIDTH" value="AddressWidth = 32" />
+  <parameter name="BURST_ENABLE" value="1" />
+  <parameter name="BURST_WRAPPING_SUPPORT" value="0" />
+  <parameter name="CHANNEL_ENABLE" value="0" />
+  <parameter name="CHANNEL_WIDTH" value="8" />
+  <parameter name="DATA_FIFO_DEPTH" value="512" />
+  <parameter name="DATA_WIDTH" value="64" />
+  <parameter name="DESCRIPTOR_FIFO_DEPTH" value="128" />
+  <parameter name="ENHANCED_FEATURES" value="1" />
+  <parameter name="ERROR_ENABLE" value="0" />
+  <parameter name="ERROR_WIDTH" value="8" />
+  <parameter name="EXPOSE_ST_PORT" value="0" />
+  <parameter name="FIX_ADDRESS_WIDTH" value="32" />
+  <parameter name="MAX_BURST_COUNT" value="128" />
+  <parameter name="MAX_BYTE" value="4194304" />
+  <parameter name="MAX_STRIDE" value="1" />
+  <parameter name="MODE" value="2" />
+  <parameter name="PACKET_ENABLE" value="1" />
+  <parameter name="PREFETCHER_DATA_WIDTH" value="32" />
+  <parameter name="PREFETCHER_ENABLE" value="0" />
+  <parameter name="PREFETCHER_MAX_READ_BURST_COUNT" value="2" />
+  <parameter name="PREFETCHER_READ_BURST_ENABLE" value="0" />
+  <parameter name="PROGRAMMABLE_BURST_ENABLE" value="0" />
+  <parameter name="RESPONSE_PORT" value="0" />
+  <parameter name="STRIDE_ENABLE" value="0" />
+  <parameter name="TRANSFER_TYPE" value="Aligned Accesses" />
+  <parameter name="USE_FIX_ADDRESS_WIDTH" value="0" />
+ </module>
  <module
    name="onchip_memory2_0"
    kind="altera_avalon_onchip_memory2"
@@ -980,6 +1126,33 @@
    end="onchip_memory2_0.s1">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x01000000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="22.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="msgdma_0.csr">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x2000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="22.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="msgdma_0.descriptor_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x2020" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="22.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="msgdma_0.response">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x2040" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -1057,6 +1230,15 @@
  <connection
    kind="avalon"
    version="22.1"
+   start="f2sdram_only_master.master"
+   end="hps_0.f2h_sdram0_data">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="22.1"
    start="fpga_only_master.master"
    end="mm_bridge_0.s0">
   <parameter name="arbitrationPriority" value="1" />
@@ -1072,6 +1254,20 @@
   <parameter name="baseAddress" value="0x01000000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
+ <connection
+   kind="avalon"
+   version="22.1"
+   start="msgdma_0.mm_write"
+   end="hps_0.f2h_sdram1_data">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon_streaming"
+   version="22.1"
+   start="counter_source_0.avalon_streaming_source"
+   end="msgdma_0.st_sink" />
  <connection kind="clock" version="22.1" start="clk_0.clk" end="sysid_qsys_0.clk" />
  <connection
    kind="clock"
@@ -1101,12 +1297,33 @@
    kind="clock"
    version="22.1"
    start="clk_0.clk"
+   end="f2sdram_only_master.clk" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
+   end="counter_source_0.clk" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
    end="onchip_memory2_0.clk1" />
+ <connection kind="clock" version="22.1" start="clk_0.clk" end="msgdma_0.clock" />
  <connection
    kind="clock"
    version="22.1"
    start="clk_0.clk"
    end="hps_0.f2h_axi_clock" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
+   end="hps_0.f2h_sdram0_clock" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
+   end="hps_0.f2h_sdram1_clock" />
  <connection
    kind="clock"
    version="22.1"
@@ -1122,6 +1339,13 @@
    version="22.1"
    start="clk_0.clk"
    end="in_system_sources_probes_0.source_clk" />
+ <connection
+   kind="interrupt"
+   version="22.1"
+   start="hps_0.f2h_irq0"
+   end="msgdma_0.csr_irq">
+  <parameter name="irqNumber" value="3" />
+ </connection>
  <connection
    kind="interrupt"
    version="22.1"
@@ -1142,6 +1366,13 @@
    start="hps_0.f2h_irq0"
    end="fpga_dipsw_pio.irq">
   <parameter name="irqNumber" value="0" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="22.1"
+   start="ILC.irq"
+   end="msgdma_0.csr_irq">
+  <parameter name="irqNumber" value="3" />
  </connection>
  <connection kind="interrupt" version="22.1" start="ILC.irq" end="jtag_uart.irq">
   <parameter name="irqNumber" value="2" />
@@ -1170,6 +1401,11 @@
    version="22.1"
    start="clk_0.clk_reset"
    end="fpga_only_master.clk_reset" />
+ <connection
+   kind="reset"
+   version="22.1"
+   start="clk_0.clk_reset"
+   end="f2sdram_only_master.clk_reset" />
  <connection
    kind="reset"
    version="22.1"
@@ -1206,6 +1442,16 @@
    start="clk_0.clk_reset"
    end="onchip_memory2_0.reset1" />
  <connection kind="reset" version="22.1" start="clk_0.clk_reset" end="ILC.reset_n" />
+ <connection
+   kind="reset"
+   version="22.1"
+   start="clk_0.clk_reset"
+   end="msgdma_0.reset_n" />
+ <connection
+   kind="reset"
+   version="22.1"
+   start="clk_0.clk_reset"
+   end="counter_source_0.reset_n" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
  <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />

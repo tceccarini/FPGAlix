@@ -28,18 +28,18 @@ entity FPGAlix is
         CLOCK3_50 : in std_logic;
         CLOCK4_50 : in std_logic;
 
-        -- SDRAM
-        DRAM_ADDR  : out   std_logic_vector(12 downto 0);
-        DRAM_BA    : out   std_logic_vector(1 downto 0);
-        DRAM_CAS_N : out   std_logic;
-        DRAM_CKE   : out   std_logic;
-        DRAM_CLK   : out   std_logic;
-        DRAM_CS_N  : out   std_logic;
-        DRAM_DQ    : inout std_logic_vector(15 downto 0);
-        DRAM_LDQM  : out   std_logic;
-        DRAM_RAS_N : out   std_logic;
-        DRAM_UDQM  : out   std_logic;
-        DRAM_WE_N  : out   std_logic;
+--        -- SDRAM
+--        DRAM_ADDR  : out   std_logic_vector(12 downto 0);
+--        DRAM_BA    : out   std_logic_vector(1 downto 0);
+--        DRAM_CAS_N : out   std_logic;
+--        DRAM_CKE   : out   std_logic;
+--        DRAM_CLK   : out   std_logic;
+--        DRAM_CS_N  : out   std_logic;
+--        DRAM_DQ    : inout std_logic_vector(15 downto 0);
+--        DRAM_LDQM  : out   std_logic;
+--        DRAM_RAS_N : out   std_logic;
+--        DRAM_UDQM  : out   std_logic;
+--        DRAM_WE_N  : out   std_logic;
 
 --        -- I2C for Audio and Video-In
 --        FPGA_I2C_SCLK : out   std_logic;

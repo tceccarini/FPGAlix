@@ -1,13 +1,13 @@
-Analysis & Synthesis Status : Successful - Thu Apr 23 18:43:06 2026
+Analysis & Synthesis Status : Successful - Fri May  8 17:12:17 2026
 Quartus Prime Version : 22.1std.1 Build 917 02/14/2023 SC Lite Edition
 Revision Name : FPGAlix
 Top-level Entity Name : FPGAlix
 Family : Cyclone V
 Logic utilization (in ALMs) : N/A
-Total registers : 3380
-Total pins : 194
+Total registers : 5434
+Total pins : 155
 Total virtual pins : 0
-Total block memory bits : 526,592
+Total block memory bits : 581,632
 Total DSP Blocks : 0
 Total HSSI RX PCSs : 0
 Total HSSI PMA RX Deserializers : 0
