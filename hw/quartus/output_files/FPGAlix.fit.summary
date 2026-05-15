@@ -1,20 +1,20 @@
-Fitter Status : Successful - Fri May  8 17:13:24 2026
+Fitter Status : Successful - Fri May 15 11:11:43 2026
 Quartus Prime Version : 22.1std.1 Build 917 02/14/2023 SC Lite Edition
 Revision Name : FPGAlix
 Top-level Entity Name : FPGAlix
 Family : Cyclone V
 Device : 5CSEMA5F31C6
 Timing Models : Final
-Logic utilization (in ALMs) : 3,798 / 32,070 ( 12 % )
-Total registers : 5590
+Logic utilization (in ALMs) : 4,085 / 32,070 ( 13 % )
+Total registers : 6374
 Total pins : 155 / 457 ( 34 % )
 Total virtual pins : 0
-Total block memory bits : 581,632 / 4,065,280 ( 14 % )
-Total RAM Blocks : 79 / 397 ( 20 % )
+Total block memory bits : 585,152 / 4,065,280 ( 14 % )
+Total RAM Blocks : 81 / 397 ( 20 % )
 Total DSP Blocks : 0 / 87 ( 0 % )
 Total HSSI RX PCSs : 0
 Total HSSI PMA RX Deserializers : 0
 Total HSSI TX PCSs : 0
 Total HSSI PMA TX Serializers : 0
-Total PLLs : 0 / 6 ( 0 % )
+Total PLLs : 1 / 6 ( 17 % )
 Total DLLs : 1 / 4 ( 25 % )
