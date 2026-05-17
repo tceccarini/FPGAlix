@@ -168,7 +168,7 @@ static void FPGAlix_buf_queue(struct vb2_buffer *vb)
 static int FPGAlix_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	FPGAlix_cam_dev_t *cam = vb2_get_drv_priv(q);
-	FPGAlix_cam_buf_t *buf, *tmp;
+	FPGAlix_cam_buf_t *buf;
 	unsigned long flags;
 	int ret;
 

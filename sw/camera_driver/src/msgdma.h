@@ -14,7 +14,9 @@
 typedef void (*FPGAlix_dma_callback_t)(void *param, bool frame_ok);
 
 typedef struct {
-	struct dma_chan *chan;
+	struct dma_chan          *chan;
+	struct workqueue_struct *wq;      /* ordered wq for safe dmaengine_tx_status calls */
+	atomic_t                 stopping; /* set during stop/release to skip tx_status */
 } FPGAlix_dma_chan_t;
 
 /* Request the mSGDMA channel from the dmaengine and configure it for
