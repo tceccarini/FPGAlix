@@ -145,6 +145,7 @@ Build the compressed kernel image and prepare the tree for external kernel modul
 ```bash
 make -j$(nproc) zImage
 make modules_prepare
+make -j$(nproc) modules 
 ```
 
 ### Device Tree Source

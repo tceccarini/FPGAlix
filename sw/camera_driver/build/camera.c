@@ -1,0 +1,1 @@
+/home/tiziano/projects/FPGAlix/sw/camera_driver/src/camera.c

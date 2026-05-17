@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux Kernel",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/../../repos/linux-socfpga/include",
+                "${workspaceFolder}/../../repos/linux-socfpga/arch/arm/include"
+            ],
+            "defines": [
+                "__KERNEL__",
+                "MODULE",
+                "__LINUX_ARM_ARCH__=7"
+            ],
+            "compilerPath": "${env:HOME}/opt/arm/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-gcc",
+            "cStandard": "c11",
+            "intelliSenseMode": "linux-gcc-arm",
+            "cppStandard": "gnu++17"
+        }
+    ],
+    "version": 4
+}
