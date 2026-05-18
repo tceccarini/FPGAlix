@@ -18,10 +18,6 @@ static FPGAlix_cam_dev_t *cam_dev;
  * Helpers
  * -------------------------------------------------------------------------- */
 
-/*
- * Fill a v4l2_format with our fixed, immutable frame parameters.
- * We support exactly one format: 640x480 Bayer RGGB 8-bit, 30 fps.
- */
 static void FPGAlix_fill_fmt(struct v4l2_format *f)
 {
 	struct v4l2_pix_format *pix = &f->fmt.pix;
@@ -36,21 +32,12 @@ static void FPGAlix_fill_fmt(struct v4l2_format *f)
 }
 
 /* --------------------------------------------------------------------------
- * DMA callback — runs in IRQ context
+ * Watchdog
  * -------------------------------------------------------------------------- */
 
 /*
- * Invoked by msgdma.c when a DMA transfer completes.
- * frame_ok=false means the Avalon-ST EOP arrived before the full frame was
- * written (short frame): we re-submit the same buffer and drop it from
- * userspace. The next buffer was already pre-submitted so the FIFO stays full.
- */
-/*
- * Watchdog work — fires if no DMA callback arrives within FPGALIX_DMA_TIMEOUT_MS.
- * This is a fatal, non-recoverable condition: the Altera mSGDMA driver does not
- * expose a software reset, so the hardware state cannot be restored.
- * The error is printed to the kernel log and to the console (pr_crit level),
- * and vb2_queue_error() unblocks any userspace thread stuck on DQBUF with -EIO.
+ * Fires if no DMA callback arrives within FPGALIX_DMA_TIMEOUT_MS.
+ * vb2_queue_error() unblocks any userspace thread stuck on DQBUF with -EIO.
  * Recovery requires rmmod + insmod.
  */
 static void FPGAlix_timeout_work(struct work_struct *work)
@@ -59,7 +46,6 @@ static void FPGAlix_timeout_work(struct work_struct *work)
 		container_of(to_delayed_work(work), FPGAlix_cam_dev_t, timeout_work);
 	unsigned long flags;
 
-	/* If no buffers are in-flight, there's nothing to time out. */
 	spin_lock_irqsave(&cam->lock, flags);
 	if (!cam->streaming || list_empty(&cam->active_list)) {
 		spin_unlock_irqrestore(&cam->lock, flags);
@@ -69,63 +55,66 @@ static void FPGAlix_timeout_work(struct work_struct *work)
 
 	pr_crit("FPGAlix: DMA timeout — no frame in %u ms, hardware unresponsive\n",
 		FPGALIX_DMA_TIMEOUT_MS);
-	pr_crit("FPGAlix: mSGDMA reset not available via dmaengine — rmmod/insmod required\n");
-
-	/* vb2_queue_error does not need q->lock — acquiring cam->mlock here
-	 * would deadlock with stop_streaming, which holds it via vb2. */
 	vb2_queue_error(&cam->queue);
 }
 
+/* --------------------------------------------------------------------------
+ * DMA callback — runs in process context (workqueue)
+ * -------------------------------------------------------------------------- */
+
+/*
+ * Invoked by msgdma.c when a DMA transfer completes.
+ *
+ * By the time this function is called, FPGAlix_dma_work has already verified:
+ *   - buf and buf->cam are non-NULL
+ *   - buf->queued is true and stream_seq matches (stale check)
+ *   - the DMA channel is not being stopped (stopping flag)
+ *
+ * The only remaining race is with stop_streaming, which sets streaming=false
+ * under cam->lock before calling FPGAlix_dma_stop.  We check streaming under
+ * the lock at the top; if false, stop_streaming will clean up active_list.
+ *
+ * For short frames (frame_ok=false) we re-submit the same buffer so the
+ * descriptor FIFO stays full.  The buffer remains on active_list throughout.
+ */
 static void FPGAlix_dma_callback(void *param, bool frame_ok)
 {
+	FPGAlix_cam_buf_t *buf = param;
+	FPGAlix_cam_dev_t *cam = buf->cam;
 	unsigned long flags;
-	FPGAlix_cam_buf_t *buf;
-	FPGAlix_cam_dev_t *cam;
+	int ret;
 
-	if (param == NULL){
-		pr_alert("FPGAlix_dma_callback: param is null\n");
-		return; /* Should never happen, but be defensive against buggy DMA engine */
-	}
-	if (((FPGAlix_cam_buf_t *)param)->cam == NULL){
-		pr_alert("FPGAlix_dma_callback: buf->cam is null\n");
-		return; /* Should never happen, but be defensive against buggy DMA engine */
-	}
-	buf = param;
-	cam = buf->cam;
-	
-
-	if (!cam->streaming)
+	spin_lock_irqsave(&cam->lock, flags);
+	if (!cam->streaming) {
+		spin_unlock_irqrestore(&cam->lock, flags);
 		return;
+	}
+	spin_unlock_irqrestore(&cam->lock, flags);
 
-	/* Hardware is alive — reset the watchdog */
+	/* Hardware is alive — reset the watchdog. */
 	mod_delayed_work(system_wq, &cam->timeout_work,
 			 msecs_to_jiffies(FPGALIX_DMA_TIMEOUT_MS));
 
 	if (!frame_ok) {
-		if (!buf->queued) {
-			pr_warn_ratelimited("FPGAlix_dma_callback: buf %p not queued; ignoring short-frame completion\n", buf);
-			return;
-		}
-		pr_warn_ratelimited("FPGAlix_dma_callback: short frame on buf %p queued=%d list_next=%p list_prev=%p cam=%p; resubmitting\n",
-				buf, buf->queued, buf->list.next, buf->list.prev, cam);
-		FPGAlix_dma_submit(&cam->dma,
-				   vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0),
-				   FPGALIX_FRAME_LEN,
-				   FPGAlix_dma_callback, buf,
-				   buf->stream_seq);
+		ret = FPGAlix_dma_submit(&cam->dma,
+					 vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0),
+					 FPGALIX_FRAME_LEN,
+					 FPGAlix_dma_callback, buf,
+					 buf->stream_seq);
+		if (ret)
+			pr_err_ratelimited("FPGAlix: short frame re-submit failed: %d\n", ret);
 		return;
 	}
 
-	/* Full frame: remove from active_list and hand the buffer to vb2. */
+	/* Full frame: remove from active_list and hand to vb2. */
 	spin_lock_irqsave(&cam->lock, flags);
-	if (buf->queued) {
-		list_del_init(&buf->list);
-		buf->queued = false;
-	} else {
-		pr_warn_ratelimited("FPGAlix_dma_callback: buf %p not queued; ignoring late DMA completion\n", buf);
+	if (!buf->queued) {
+		/* stop_streaming already cleaned up this buffer. */
 		spin_unlock_irqrestore(&cam->lock, flags);
 		return;
 	}
+	list_del_init(&buf->list);
+	buf->queued = false;
 	spin_unlock_irqrestore(&cam->lock, flags);
 
 	buf->vb.vb2_buf.timestamp = ktime_get_ns();
@@ -163,9 +152,8 @@ static int FPGAlix_buf_prepare(struct vb2_buffer *vb)
 
 /*
  * Called when userspace issues QBUF.
- * If streaming is already active, submit the buffer to DMA immediately
- * so the mSGDMA FIFO stays as full as possible.
- * Otherwise, park it in buf_queue until start_streaming.
+ * If streaming is active, submit directly to DMA to keep the FIFO full.
+ * Otherwise, park in buf_queue until start_streaming.
  */
 static void FPGAlix_buf_queue(struct vb2_buffer *vb)
 {
@@ -173,22 +161,18 @@ static void FPGAlix_buf_queue(struct vb2_buffer *vb)
 	FPGAlix_cam_buf_t *buf =
 		container_of(to_vb2_v4l2_buffer(vb), FPGAlix_cam_buf_t, vb);
 	unsigned long flags;
-	bool was_empty = false;
 
-	buf->cam = cam;
+	buf->cam    = cam;
 	buf->queued = false;
-	buf->stream_seq = cam->stream_seq;
 
 	spin_lock_irqsave(&cam->lock, flags);
+
 	if (cam->streaming) {
-		/* Streaming active: go directly to active_list and submit */
-		was_empty = list_empty(&cam->active_list);
+		buf->stream_seq = cam->stream_seq;
 		list_add_tail(&buf->list, &cam->active_list);
 		buf->queued = true;
 		spin_unlock_irqrestore(&cam->lock, flags);
-		if (was_empty)
-			mod_delayed_work(system_wq, &cam->timeout_work,
-					 msecs_to_jiffies(FPGALIX_DMA_TIMEOUT_MS));
+
 		FPGAlix_dma_submit(&cam->dma,
 				   vb2_dma_contig_plane_dma_addr(vb, 0),
 				   FPGALIX_FRAME_LEN,
@@ -196,16 +180,18 @@ static void FPGAlix_buf_queue(struct vb2_buffer *vb)
 				   buf->stream_seq);
 		return;
 	}
-	/* Not streaming yet: park in buf_queue until start_streaming */
+
+	/* Park until start_streaming. */
+	buf->stream_seq = cam->stream_seq;
 	list_add_tail(&buf->list, &cam->buf_queue);
 	buf->queued = true;
 	spin_unlock_irqrestore(&cam->lock, flags);
 }
 
 /*
- * Pre-submit all queued buffers to the mSGDMA so the descriptor FIFO is full
- * before the first frame arrives. vb2 guarantees at least min_buffers_needed
- * (3) are in the queue before calling us.
+ * Pre-submit all queued buffers so the mSGDMA descriptor FIFO is full before
+ * the first frame arrives.  vb2 guarantees at least min_buffers_needed are
+ * queued before calling us.
  */
 static int FPGAlix_start_streaming(struct vb2_queue *q, unsigned int count)
 {
@@ -214,6 +200,27 @@ static int FPGAlix_start_streaming(struct vb2_queue *q, unsigned int count)
 	unsigned long flags;
 	int ret;
 
+	/* Re-acquire the DMA channel if stop_streaming released it.
+	 * This triggers alloc_chan_resources -> msgdma_reset in the kernel
+	 * driver, giving the mSGDMA a clean hardware state. */
+	if (!cam->dma.chan) {
+		ret = FPGAlix_dma_init(&cam->dma);
+		if (ret) {
+			pr_err("FPGAlix: DMA re-init failed: %d\n", ret);
+			spin_lock_irqsave(&cam->lock, flags);
+			while (!list_empty(&cam->buf_queue)) {
+				buf = list_first_entry(&cam->buf_queue, FPGAlix_cam_buf_t, list);
+				list_del_init(&buf->list);
+				buf->queued = false;
+				spin_unlock_irqrestore(&cam->lock, flags);
+				vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
+				spin_lock_irqsave(&cam->lock, flags);
+			}
+			spin_unlock_irqrestore(&cam->lock, flags);
+			return ret;
+		}
+	}
+
 	spin_lock_irqsave(&cam->lock, flags);
 	cam->streaming = true;
 	cam->stream_seq++;
@@ -221,15 +228,10 @@ static int FPGAlix_start_streaming(struct vb2_queue *q, unsigned int count)
 	schedule_delayed_work(&cam->timeout_work,
 			      msecs_to_jiffies(FPGALIX_DMA_TIMEOUT_MS));
 
-	/* Move buffers from buf_queue to active_list one at a time.
-	 * list_first_entry + list_move_tail is safe: we re-acquire the lock
-	 * between each submit so a concurrent DMA callback cannot corrupt
-	 * the iterator. */
 	while (!list_empty(&cam->buf_queue)) {
 		buf = list_first_entry(&cam->buf_queue, FPGAlix_cam_buf_t, list);
 		buf->stream_seq = cam->stream_seq;
 		list_move_tail(&buf->list, &cam->active_list);
-		/* buf->queued already true from buf_queue */
 		spin_unlock_irqrestore(&cam->lock, flags);
 
 		ret = FPGAlix_dma_submit(&cam->dma,
@@ -240,7 +242,7 @@ static int FPGAlix_start_streaming(struct vb2_queue *q, unsigned int count)
 		if (ret) {
 			pr_err("FPGAlix: DMA submit failed at start: %d\n", ret);
 			spin_lock_irqsave(&cam->lock, flags);
-			list_del(&buf->list);
+			list_del_init(&buf->list);
 			buf->queued = false;
 			spin_unlock_irqrestore(&cam->lock, flags);
 			vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
@@ -252,6 +254,15 @@ static int FPGAlix_start_streaming(struct vb2_queue *q, unsigned int count)
 	return 0;
 }
 
+/*
+ * Order matters:
+ *   1. Cancel watchdog.
+ *   2. Set streaming=false under lock — callbacks arriving during step 3
+ *      will see the flag and bail out without touching vb2.
+ *   3. Drain in-flight DMA (FPGAlix_dma_stop increments chan_seq so late
+ *      completions after the drain are silently dropped).
+ *   4. Return all remaining buffers to vb2 as ERROR.
+ */
 static void FPGAlix_stop_streaming(struct vb2_queue *q)
 {
 	FPGAlix_cam_dev_t *cam = vb2_get_drv_priv(q);
@@ -260,29 +271,26 @@ static void FPGAlix_stop_streaming(struct vb2_queue *q)
 
 	cancel_delayed_work_sync(&cam->timeout_work);
 
-	/* Terminate all in-flight DMA and drain the work queue.
-	 * FPGAlix_dma_wait_idle cannot be used here: if the hardware is stuck
-	 * (no more interrupts), inflight never reaches 0 and we deadlock. */
-	FPGAlix_dma_stop(&cam->dma);
-
 	spin_lock_irqsave(&cam->lock, flags);
 	cam->streaming = false;
 	spin_unlock_irqrestore(&cam->lock, flags);
 
-	/* Return all buffers still waiting in buf_queue (not yet submitted) */
+	/* Release the channel entirely so the next start_streaming can
+	 * re-acquire it and trigger msgdma_reset via alloc_chan_resources. */
+	FPGAlix_dma_release(&cam->dma);
+
 	spin_lock_irqsave(&cam->lock, flags);
 	while (!list_empty(&cam->buf_queue)) {
 		buf = list_first_entry(&cam->buf_queue, FPGAlix_cam_buf_t, list);
-		list_del(&buf->list);
+		list_del_init(&buf->list);
 		buf->queued = false;
 		spin_unlock_irqrestore(&cam->lock, flags);
 		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
 		spin_lock_irqsave(&cam->lock, flags);
 	}
-	/* Return all buffers that were in-flight (DMA terminated above) */
 	while (!list_empty(&cam->active_list)) {
 		buf = list_first_entry(&cam->active_list, FPGAlix_cam_buf_t, list);
-		list_del(&buf->list);
+		list_del_init(&buf->list);
 		buf->queued = false;
 		spin_unlock_irqrestore(&cam->lock, flags);
 		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
@@ -308,9 +316,9 @@ static const struct vb2_ops fpgalix_vb2_ops = {
 static int fpgalix_querycap(struct file *file, void *priv,
 			    struct v4l2_capability *cap)
 {
-	strscpy(cap->driver,   FPGALIX_DRV_NAME,   sizeof(cap->driver));
-	strscpy(cap->card,     FPGALIX_CARD_NAME,  sizeof(cap->card));
-	strscpy(cap->bus_info, FPGALIX_BUS_INFO,   sizeof(cap->bus_info));
+	strscpy(cap->driver,   FPGALIX_DRV_NAME,  sizeof(cap->driver));
+	strscpy(cap->card,     FPGALIX_CARD_NAME, sizeof(cap->card));
+	strscpy(cap->bus_info, FPGALIX_BUS_INFO,  sizeof(cap->bus_info));
 	return 0;
 }
 
@@ -378,7 +386,6 @@ static int fpgalix_g_parm(struct file *file, void *priv,
 static int fpgalix_s_parm(struct file *file, void *priv,
 			  struct v4l2_streamparm *sp)
 {
-	/* Frame rate is fixed — ignore the requested value and return actual. */
 	return fpgalix_g_parm(file, priv, sp);
 }
 
@@ -393,7 +400,6 @@ static const struct v4l2_ioctl_ops fpgalix_ioctl_ops = {
 	.vidioc_s_input          = fpgalix_s_input,
 	.vidioc_g_parm           = fpgalix_g_parm,
 	.vidioc_s_parm           = fpgalix_s_parm,
-	/* vb2 provides the buffer management ioctls */
 	.vidioc_reqbufs          = vb2_ioctl_reqbufs,
 	.vidioc_querybuf         = vb2_ioctl_querybuf,
 	.vidioc_qbuf             = vb2_ioctl_qbuf,
@@ -404,7 +410,7 @@ static const struct v4l2_ioctl_ops fpgalix_ioctl_ops = {
 };
 
 /* --------------------------------------------------------------------------
- * file_operations — delegated entirely to vb2 and v4l2 helpers
+ * file_operations
  * -------------------------------------------------------------------------- */
 
 static const struct v4l2_file_operations fpgalix_fops = {
@@ -421,11 +427,6 @@ static const struct v4l2_file_operations fpgalix_fops = {
  * Module init / exit
  * -------------------------------------------------------------------------- */
 
-/*
- * Teardown levels — each case undoes one init step then falls through
- * to undo all previous ones. Call with the level reached before the failure,
- * or with LEVEL_FULL from module_exit to tear everything down.
- */
 enum {
 	LEVEL_ALLOC  = 0,
 	LEVEL_DMA    = 1,
@@ -438,19 +439,19 @@ enum {
 static void FPGAlix_camera_teardown(FPGAlix_cam_dev_t *cam, int level)
 {
 	switch (level) {
-	case LEVEL_FULL:  video_unregister_device(&cam->vdev);      fallthrough;
-	case LEVEL_VB2:   vb2_queue_release(&cam->queue);           fallthrough;
-	case LEVEL_V4L2:  v4l2_device_unregister(&cam->v4l2_dev);  fallthrough;
+	case LEVEL_FULL:   video_unregister_device(&cam->vdev);     fallthrough;
+	case LEVEL_VB2:    vb2_queue_release(&cam->queue);          fallthrough;
+	case LEVEL_V4L2:   v4l2_device_unregister(&cam->v4l2_dev); fallthrough;
 	case LEVEL_SENSOR: FPGAlix_sensor_release();                fallthrough;
-	case LEVEL_DMA:   FPGAlix_dma_release(&cam->dma);           fallthrough;
-	default:          kfree(cam);
+	case LEVEL_DMA:    FPGAlix_dma_release(&cam->dma);          fallthrough;
+	default:           kfree(cam);
 	}
 }
 
 static int __init FPGAlix_camera_init(void)
 {
 	FPGAlix_cam_dev_t *cam;
-	struct vb2_queue *q;
+	struct vb2_queue  *q;
 	int ret;
 
 	cam = kzalloc(sizeof(*cam), GFP_KERNEL);
@@ -476,7 +477,6 @@ static int __init FPGAlix_camera_init(void)
 		return ret;
 	}
 
-	/* name must be set before v4l2_device_register when dev=NULL */
 	strscpy(cam->v4l2_dev.name, FPGALIX_DRV_NAME, sizeof(cam->v4l2_dev.name));
 	ret = v4l2_device_register(NULL, &cam->v4l2_dev);
 	if (ret) {
@@ -495,7 +495,6 @@ static int __init FPGAlix_camera_init(void)
 	q->timestamp_flags    = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->min_buffers_needed = FPGALIX_MIN_BUFFERS;
 	q->lock               = &cam->mlock;
-	/* Use the DMA engine's device for dma_alloc_coherent */
 	q->dev                = cam->dma.chan->device->dev;
 
 	ret = vb2_queue_init(q);
@@ -523,8 +522,7 @@ static int __init FPGAlix_camera_init(void)
 	}
 
 	cam_dev = cam;
-	pr_info("FPGAlix: camera ready on %s\n",
-		video_device_node_name(&cam->vdev));
+	pr_info("FPGAlix: camera ready on %s\n", video_device_node_name(&cam->vdev));
 	return 0;
 }
 

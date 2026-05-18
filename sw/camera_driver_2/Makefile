@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0
-# Standalone msgdma test module build
+# Builds fpgalix_camera.ko (V4L2 + Altera mSGDMA driver) for Cyclone V SoC.
+#
+# Layout:
+#   src/   — C sources and headers
+#   build/ — intermediate artifacts (.o, .mod, Kbuild, symlinks)
+#   bin/   — final fpgalix_camera.ko
 
 ARCH          := arm
 CROSS_COMPILE := arm-none-linux-gnueabihf-
@@ -8,11 +13,10 @@ KDIR          := $(CURDIR)/../../repos/linux-socfpga
 SRC_DIR   := $(CURDIR)/src
 BUILD_DIR := $(CURDIR)/build
 BIN_DIR   := $(CURDIR)/bin
-MODULE    := fpgalix_msgdma_test
-DRIVER_SRC := $(CURDIR)/../camera_driver/src
+MODULE    := fpgalix_camera
 
-C_SRCS := msgdma_test.c msgdma.c
-H_SRCS := msgdma.h camera.h config.h
+C_SRCS := camera.c msgdma.c sensor.c
+H_SRCS := camera.h msgdma.h sensor.h config.h
 
 BUILD_C  := $(addprefix $(BUILD_DIR)/, $(C_SRCS))
 BUILD_H  := $(addprefix $(BUILD_DIR)/, $(H_SRCS))
@@ -30,21 +34,12 @@ $(BUILD_DIR)/$(MODULE).ko: $(BUILD_KB) $(BUILD_C) $(BUILD_H)
 	    ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) modules
 
 $(BUILD_KB): | $(BUILD_DIR)
-	@printf 'obj-m          := $(MODULE).o\n$(MODULE)-y := msgdma_test.o msgdma.o\n' > $@
+	@printf 'obj-m          := $(MODULE).o\n$(MODULE)-y := camera.o msgdma.o sensor.o\n' > $@
 
-$(BUILD_DIR)/msgdma_test.c: $(SRC_DIR)/msgdma_test.c | $(BUILD_DIR)
+$(BUILD_DIR)/%.c: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	@ln -sf $< $@
 
-$(BUILD_DIR)/msgdma.c: $(DRIVER_SRC)/msgdma.c | $(BUILD_DIR)
-	@ln -sf $< $@
-
-$(BUILD_DIR)/msgdma.h: $(DRIVER_SRC)/msgdma.h | $(BUILD_DIR)
-	@ln -sf $< $@
-
-$(BUILD_DIR)/camera.h: $(DRIVER_SRC)/camera.h | $(BUILD_DIR)
-	@ln -sf $< $@
-
-$(BUILD_DIR)/config.h: $(DRIVER_SRC)/config.h | $(BUILD_DIR)
+$(BUILD_DIR)/%.h: $(SRC_DIR)/%.h | $(BUILD_DIR)
 	@ln -sf $< $@
 
 $(BUILD_DIR) $(BIN_DIR):

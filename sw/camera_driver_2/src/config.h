@@ -28,15 +28,8 @@
 #define FPGALIX_BUS_INFO        "platform:fpgalix"
 
 /* ---- Watchdog ---------------------------------------------------------- */
-/* Time (ms) with no DMA callback before the stream is declared dead.
- * At 30 fps one frame takes ~33 ms — 500 ms equals ~15 missed frames. */
+/* Time (ms) with no DMA callback before the stream is declared dead. */
 #define FPGALIX_DMA_TIMEOUT_MS      30000
-
-/* Time (ms) to wait for in-flight DMA to drain on stop_streaming before
- * resorting to dmaengine_terminate_sync.  A few frames at 25 ms each is
- * enough for normal teardown; 500 ms avoids leaving the mSGDMA halted
- * (STOP_DISPATCHER set) which would break the next streaming session. */
-#define FPGALIX_DMA_STOP_TIMEOUT_MS 500
 
 /* ---- DMA --------------------------------------------------------------- */
 /* Bus width must match the mSGDMA data width set in the FPGA Qsys design */

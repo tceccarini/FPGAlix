@@ -16,11 +16,9 @@ typedef void (*FPGAlix_dma_callback_t)(void *param, bool frame_ok);
 
 typedef struct {
 	struct dma_chan          *chan;
-	struct workqueue_struct *wq;
-	atomic_t                 stopping; /* set during stop/release to skip vb2 callbacks */
+	struct workqueue_struct *wq;      /* ordered wq for safe dmaengine_tx_status calls */
+	atomic_t                 stopping; /* set during stop/release to skip tx_status */
 	atomic_t                 inflight; /* submitted DMA descriptors not yet completed */
-	atomic_t                 chan_seq; /* incremented on each dma_stop; work items from
-	                                   * older sessions are dropped without touching inflight */
 	wait_queue_head_t        idle_wait;
 } FPGAlix_dma_chan_t;
 

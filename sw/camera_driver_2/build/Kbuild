@@ -1,0 +1,2 @@
+obj-m          := fpgalix_camera.o
+fpgalix_camera-y := camera.o msgdma.o sensor.o

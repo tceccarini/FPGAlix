@@ -1,0 +1,2 @@
+obj-m          := fpgalix_msgdma_test.o
+fpgalix_msgdma_test-y := msgdma_test.o msgdma.o

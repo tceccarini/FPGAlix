@@ -19,9 +19,8 @@ typedef struct {
 	FPGAlix_dma_callback_t  cb;
 	void                   *cb_param;
 	u32                     stream_seq;
-	u32                     chan_seq;    /* snapshot of dma->chan_seq at submit time */
 	size_t                  expected_len;
-	u32                     residue;
+	u32                     residue;     /* captured from hw descriptor before recycle */
 	struct work_struct      work;
 } FPGAlix_dma_ctx_t;
 
@@ -41,13 +40,6 @@ static void FPGAlix_dma_work(struct work_struct *work)
 
 	pr_debug("FPGAlix_dma_work: ctx=%p cb_param=%p expected=%zu\n",
 			 ctx, cb_param, ctx->expected_len);
-
-	/* Drop work items from a previous stop/start cycle without touching
-	 * inflight: dma_stop already reset it to 0 and incremented chan_seq. */
-	if (atomic_read(&ctx->dma->chan_seq) != ctx->chan_seq) {
-		kfree(ctx);
-		return;
-	}
 
 	if (!buf || !buf->cam) {
 		pr_warn("FPGAlix_dma_work: missing buffer/cam, dropping ctx=%p cb_param=%p\n", ctx, cb_param);
@@ -139,7 +131,6 @@ int FPGAlix_dma_init(FPGAlix_dma_chan_t *dma)
 
 	atomic_set(&dma->stopping, 0);
 	atomic_set(&dma->inflight, 0);
-	atomic_set(&dma->chan_seq, 0);
 	init_waitqueue_head(&dma->idle_wait);
 
 	dma->wq = alloc_ordered_workqueue("fpgalix_dma", 0);
@@ -172,21 +163,21 @@ void FPGAlix_dma_stop(FPGAlix_dma_chan_t *dma)
 {
 	if (!dma->chan)
 		return;
-
-	/* Do NOT call dmaengine_terminate_sync here: on the Altera mSGDMA it
-	 * sets STOP_DISPATCHER in the CSR, which prevents the next streaming
-	 * session from processing new descriptors.  Instead:
-	 *  1. Set stopping so in-flight work items skip vb2 callbacks.
-	 *  2. Drain work items that are already queued.
-	 *  3. Reset inflight and bump chan_seq.  Any work items that arrive
-	 *     late (orphaned descriptors from this cycle completing after
-	 *     chan_seq is incremented) are silently dropped by FPGAlix_dma_work
-	 *     without touching inflight, so the next session is unaffected.
-	 * terminate_sync is reserved for module release (FPGAlix_dma_release). */
 	atomic_set(&dma->stopping, 1);
+
+	/* Let in-flight transfers drain naturally.  dmaengine_terminate_sync
+	 * sets STOP_DISPATCHER on the Altera mSGDMA, which prevents new
+	 * descriptors from being processed in the next streaming session.
+	 * Only force-terminate if the hardware is unresponsive — in that case
+	 * rmmod/insmod is required anyway, so leaving the dispatcher halted is
+	 * acceptable. */
+	if (FPGAlix_dma_wait_idle(dma, FPGALIX_DMA_STOP_TIMEOUT_MS) != 0) {
+		pr_warn("FPGAlix: dma_stop timed out waiting for idle, force-terminating\n");
+		dmaengine_terminate_sync(dma->chan);
+	}
+
 	drain_workqueue(dma->wq);
 	atomic_set(&dma->inflight, 0);
-	atomic_inc(&dma->chan_seq);
 	wake_up_all(&dma->idle_wait);
 	atomic_set(&dma->stopping, 0);
 }
@@ -230,7 +221,6 @@ int FPGAlix_dma_submit(FPGAlix_dma_chan_t *dma, dma_addr_t addr,
 	ctx->cb           = cb;
 	ctx->cb_param     = cb_param;
 	ctx->stream_seq   = stream_seq;
-	ctx->chan_seq     = atomic_read(&dma->chan_seq);
 	ctx->expected_len = len;
 	ctx->residue      = 0;
 	INIT_WORK(&ctx->work, FPGAlix_dma_work);
