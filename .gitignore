@@ -34,6 +34,10 @@ hw/quartus/c5_pin_model_dump.txt
 hw/quartus/hps_sdram_p0_all_pins.txt
 hw/quartus/hps_sdram_p0_summary.csv
 
+# sw subproject build outputs
+sw/**/bin/
+sw/**/build/
+
 # Kernel module build artifacts
 sw/**/.*.cmd
 sw/**/*.o
