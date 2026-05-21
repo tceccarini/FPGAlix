@@ -46,12 +46,12 @@ entity FPGAlix is
 --        FPGA_I2C_SDAT : inout std_logic;
 
 --        -- SEG7
---        HEX0_N : out std_logic_vector(6 downto 0);
---        HEX1_N : out std_logic_vector(6 downto 0);
---        HEX2_N : out std_logic_vector(6 downto 0);
---        HEX3_N : out std_logic_vector(6 downto 0);
---        HEX4_N : out std_logic_vector(6 downto 0);
---        HEX5_N : out std_logic_vector(6 downto 0);
+        HEX0_N : out std_logic_vector(6 downto 0);
+        HEX1_N : out std_logic_vector(6 downto 0);
+        HEX2_N : out std_logic_vector(6 downto 0);
+        HEX3_N : out std_logic_vector(6 downto 0);
+        HEX4_N : out std_logic_vector(6 downto 0);
+        HEX5_N : out std_logic_vector(6 downto 0);
 
 --        -- IR
 --        IRDA_RXD : in  std_logic;
@@ -89,8 +89,8 @@ entity FPGAlix is
 --        VGA_SYNC_N  : out std_logic;
 --        VGA_VS      : out std_logic;
 
---        -- GPIO_0
---        GPIO_0 : inout std_logic_vector(35 downto 0);
+        -- GPIO_0 (camera interface)
+        GPIO_0 : inout std_logic_vector(35 downto 0);
 --
 --        -- GPIO_1
 --        GPIO_1 : inout std_logic_vector(35 downto 0);
@@ -152,22 +152,25 @@ entity FPGAlix is
 end entity FPGAlix;
 
 architecture rtl of FPGAlix is
-    signal hps_fpga_reset_n    : std_logic;
-    signal hps_reset_req       : std_logic_vector(2 downto 0);
-    signal hps_cold_reset      : std_logic;
-    signal hps_warm_reset      : std_logic;
-    signal hps_debug_reset     : std_logic;
-    signal hps_f2h_cold_n      : std_logic;
-    signal hps_f2h_warm_n      : std_logic;
-    signal hps_f2h_debug_n     : std_logic;
-    signal stm_hw_events       : std_logic_vector(27 downto 0);
-    signal fpga_led_internal   : std_logic_vector(9 downto 0);
-    signal cold_prev           : std_logic;
-    signal warm_prev           : std_logic;
-    signal debug_prev          : std_logic;
-    signal cold_cnt            : integer range 0 to 6;
-    signal warm_cnt            : integer range 0 to 2;
-    signal debug_cnt           : integer range 0 to 32;
+    signal hps_fpga_reset_n   	 	: std_logic;
+    signal hps_reset_req      	 	: std_logic_vector(2 downto 0);
+    signal hps_cold_reset     	 	: std_logic;
+    signal hps_warm_reset     	 	: std_logic;
+    signal hps_debug_reset    	 	: std_logic;
+    signal hps_f2h_cold_n     	 	: std_logic;
+    signal hps_f2h_warm_n     		: std_logic;
+    signal hps_f2h_debug_n    	   : std_logic;
+    signal stm_hw_events            : std_logic_vector(27 downto 0);
+    signal ov7670_ctrl_if_sda_oe    : std_logic;
+    signal ov7670_ctrl_if_scl_oe    : std_logic;
+    signal ov7670_data_if_data      : std_logic_vector(7 downto 0);
+    signal fpga_led_internal   		: std_logic_vector(9 downto 0);
+    signal cold_prev           		: std_logic;
+    signal warm_prev           		: std_logic;
+    signal debug_prev          		: std_logic;
+    signal cold_cnt            		: integer range 0 to 6;
+    signal warm_cnt            		: integer range 0 to 2;
+    signal debug_cnt           		: integer range 0 to 32;
 begin
 	soc_system_inst : entity soc_system.soc_system
 		port map(
@@ -252,8 +255,38 @@ begin
 			hps_f2h_stm_hw_events_stm_hwevents         => stm_hw_events,
 			hps_h2f_reset_reset_n                      => hps_fpga_reset_n,
 			issp_hps_resets_source                     => hps_reset_req,
-			reset_reset_n => '1'
+			reset_reset_n => '1',
+			hex_dsplay_hex0_n => HEX0_N,
+			hex_dsplay_hex1_n => HEX1_N,
+			hex_dsplay_hex2_n => HEX2_N,
+			hex_dsplay_hex3_n => HEX3_N,
+			hex_dsplay_hex4_n => HEX4_N,
+			hex_dsplay_hex5_n                          => HEX5_N,
+			ov7670_pclk_clk                            => GPIO_0(1),
+			ov7670_ctrl_if_sda_in                      => GPIO_0(27),
+			ov7670_ctrl_if_scl_in                      => GPIO_0(29),
+			ov7670_ctrl_if_sda_oe                      => ov7670_ctrl_if_sda_oe,
+			ov7670_ctrl_if_scl_oe                      => ov7670_ctrl_if_scl_oe,
+			ov7670_data_if_cam_reset_n                 => GPIO_0(31),
+			ov7670_data_if_cam_pwdn                    => GPIO_0(33),
+			ov7670_data_if_cam_href                    => GPIO_0(3),
+			ov7670_data_if_cam_vsync                   => GPIO_0(5),
+			ov7670_data_if_cam_data                    => ov7670_data_if_data
 		);
+
+    -- I2C open-drain (active low drive)
+    GPIO_0(27) <= '0' when ov7670_ctrl_if_sda_oe = '1' else 'Z';
+    GPIO_0(29) <= '0' when ov7670_ctrl_if_scl_oe = '1' else 'Z';
+
+    -- CAM data bus (non-contiguous GPIO pins)
+    ov7670_data_if_data(0) <= GPIO_0(11);
+    ov7670_data_if_data(1) <= GPIO_0(13);
+    ov7670_data_if_data(2) <= GPIO_0(15);
+    ov7670_data_if_data(3) <= GPIO_0(17);
+    ov7670_data_if_data(4) <= GPIO_0(19);
+    ov7670_data_if_data(5) <= GPIO_0(21);
+    ov7670_data_if_data(6) <= GPIO_0(23);
+    ov7670_data_if_data(7) <= GPIO_0(25);
 
     -- LED routing e STM events
     LEDR          <= fpga_led_internal;

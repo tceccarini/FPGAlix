@@ -62,6 +62,20 @@ Device Drivers
 `VIDEO_ASPEED=y` causes the kernel to build `videobuf2-dma-contig.ko` as a
 side effect. The Aspeed module itself never needs to be loaded on the target.
 
+### I2C Master Intel FPGA IP — required for FPGA I2C bus
+
+```
+Device Drivers
+  └─ I2C support
+       └─ I2C Hardware Bus support
+            └─ Altera Soft IP I2C                 [CONFIG_I2C_ALTERA=y]
+```
+
+Enables the `i2c-altera` driver for the `altera_avalon_i2c` Qsys component
+(`compatible = "altr,softip-i2c-v1.0"`). Without this the FPGA I2C bus is
+invisible to Linux and the camera cannot be configured from userspace when
+I2C is routed through the FPGA instead of the HPS.
+
 ### CMA — recommended
 
 ```

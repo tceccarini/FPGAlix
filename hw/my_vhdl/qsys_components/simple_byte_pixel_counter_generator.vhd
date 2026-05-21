@@ -21,11 +21,6 @@ entity simple_byte_pixel_counter_generator is
 end entity simple_byte_pixel_counter_generator;
 
 architecture rtl of simple_byte_pixel_counter_generator is
-	-- TODO: ctrl_reg will get a proper Avalon MM slave write interface in a future revision
-	-- signal ctrl_reg : std_logic_vector(7 downto 0) := (0 => '1', others => '0');
-	-- ctrl_reg(0): enable - activate the modules.
-	-- ctrl_reg(1): soft_res — software reset, behaves like hardware reset when set
-	-- alias soft_res : std_logic is ctrl_reg(1);
 begin
 
 	process(clock_signal)
