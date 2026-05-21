@@ -1,1 +1,0 @@
-/home/tiziano/projects/FPGAlix/sw/msgdma_test/../camera_driver/src/camera.h
