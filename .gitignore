@@ -49,3 +49,6 @@ sw/**/Module.symvers
 
 # Editor backup files
 *~
+
+# IDE settings
+.vscode/
