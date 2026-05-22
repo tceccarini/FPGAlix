@@ -1,3 +1,9 @@
+# Persist the auto-generated MAC address on first boot
+if test -z "${mac_saved}"; then
+    setenv mac_saved 1
+    saveenv
+fi
+
 # Set kernel boot arguments: serial console on UART0 at 115200 baud, root filesystem on SD card second partition (ext4), read-write
 setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rw rootwait earlyprintk
 
