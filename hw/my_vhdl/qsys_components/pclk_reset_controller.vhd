@@ -11,6 +11,8 @@ entity pclk_reset_controller is
         -- bit0: sw_release - write 1 to release pclk reset, 0 to assert it
         mm_writedata  : in  std_logic_vector(31 downto 0) := (others => '0');
         mm_write      : in  std_logic := '0';
+        mm_readdata   : out std_logic_vector(31 downto 0) := (others => '0');
+        mm_read       : in  std_logic := '0';
 
         -- pclk domain
         pclk_in       : in  std_logic;
@@ -37,10 +39,16 @@ begin
     process(sys_clk)
     begin
         if rising_edge(sys_clk) then
+            mm_readdata <= (others => '0');
             if sys_reset_n = '0' then
                 sw_release <= '0';
-            elsif mm_write = '1' then
-                sw_release <= mm_writedata(0);
+            else
+                if mm_write = '1' then
+                    sw_release <= mm_writedata(0);
+                end if;
+                if mm_read = '1' then
+                    mm_readdata(0) <= sw_release;
+                end if;
             end if;
         end if;
     end process;

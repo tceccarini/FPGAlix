@@ -4,7 +4,7 @@
 
 
 # 
-# pclk_reset_controller "PCLK Reset Controller" v1.1
+# pclk_reset_controller "PCLK Reset Controller" v1.2
 # Tiziano Ceccarini 2026.05.21.11:45:23
 # Accepts the OV7670 pixel clock (pclk_in) and forwards it as a Qsys clock source (pclk_out). Controls the pclk domain reset by combining the system reset with a software-controlled release bit (Avalon-MM, bit 0). The pclk domain stays in reset until both the system reset is deasserted and software explicitly releases it, allowing the HPS to hold the pclk domain in reset during I2C camera configuration.
 # 
@@ -20,7 +20,7 @@ package require -exact qsys 16.1
 # 
 set_module_property DESCRIPTION "Accepts the OV7670 pixel clock (pclk_in) and forwards it as a Qsys clock source (pclk_out). Controls the pclk domain reset by combining the system reset with a software-controlled release bit (Avalon-MM, bit 0). The pclk domain stays in reset until both the system reset is deasserted and software explicitly releases it, allowing the HPS to hold the pclk domain in reset during I2C camera configuration."
 set_module_property NAME pclk_reset_controller
-set_module_property VERSION 1.1
+set_module_property VERSION 1.2
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
 set_module_property GROUP My
@@ -97,7 +97,7 @@ set_interface_property sys_mm holdTime 0
 set_interface_property sys_mm linewrapBursts false
 set_interface_property sys_mm maximumPendingReadTransactions 0
 set_interface_property sys_mm maximumPendingWriteTransactions 0
-set_interface_property sys_mm readLatency 0
+set_interface_property sys_mm readLatency 1
 set_interface_property sys_mm readWaitTime 1
 set_interface_property sys_mm setupTime 0
 set_interface_property sys_mm timingUnits Cycles
@@ -108,8 +108,10 @@ set_interface_property sys_mm PORT_NAME_MAP ""
 set_interface_property sys_mm CMSIS_SVD_VARIABLES ""
 set_interface_property sys_mm SVD_ADDRESS_GROUP ""
 
-add_interface_port sys_mm mm_writedata writedata Input 32
-add_interface_port sys_mm mm_write write Input 1
+add_interface_port sys_mm mm_writedata writedata Input  32
+add_interface_port sys_mm mm_write     write     Input   1
+add_interface_port sys_mm mm_readdata  readdata  Output 32
+add_interface_port sys_mm mm_read      read      Input   1
 set_interface_assignment sys_mm embeddedsw.configuration.isFlash 0
 set_interface_assignment sys_mm embeddedsw.configuration.isMemoryDevice 0
 set_interface_assignment sys_mm embeddedsw.configuration.isNonVolatileStorage 0
