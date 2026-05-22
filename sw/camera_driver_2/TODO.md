@@ -10,14 +10,10 @@
 
 ---
 
-## Verificare Bayer order con OV7670 reale
+## ✓ Bayer order verificato con OV7670 reale (2026-05-22)
 
-`FPGALIX_PIXEL_FMT` in `src/config.h` è impostato a `V4L2_PIX_FMT_SBGGR8` (BGGR).
-Il driver Linux upstream per OV7670 usa `GBRG`, che differisce di un pixel in colonna.
-Un offset di acquisizione nell'IP FPGA produce lo stesso effetto.
-
-Dopo aver collegato il sensore: catturare un frame e verificare i colori.
-Se sono sbagliati, cambiare il define in `V4L2_PIX_FMT_SGBRG8` e ricompilare.
+`FPGALIX_PIXEL_FMT` aggiornato a `V4L2_PIX_FMT_SGRBG8` (GRBG).
+Verificato empiricamente su frame reale — pattern 3 (BayerGR) in OpenCV.
 
 ---
 

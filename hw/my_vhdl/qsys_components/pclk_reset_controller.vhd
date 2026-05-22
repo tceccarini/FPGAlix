@@ -15,9 +15,12 @@ entity pclk_reset_controller is
         mm_read       : in  std_logic := '0';
 
         -- pclk domain
-        pclk_in       : in  std_logic;
-        pclk_out      : out std_logic;
-        pclk_reset_n  : out std_logic
+        pclk_in        : in  std_logic;
+        pclk_out       : out std_logic;
+        pclk_reset_n   : out std_logic;
+
+        -- camera reset (active low, async assert, sync deassert to pclk)
+        camera_reset_n : out std_logic
     );
 end entity pclk_reset_controller;
 
@@ -67,7 +70,8 @@ begin
         end if;
     end process;
 
-    pclk_out     <= pclk_in;  -- Quartus infers a global clock buffer here
-    pclk_reset_n <= sync_ff2;
+    pclk_out       <= pclk_in;  -- Quartus infers a global clock buffer here
+    camera_reset_n <= sys_reset_n and sw_release;
+    pclk_reset_n   <= sync_ff2;
 
 end architecture rtl;

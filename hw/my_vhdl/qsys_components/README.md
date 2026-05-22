@@ -44,11 +44,12 @@ Captures raw pixel data from an OV7670 camera and forwards it on an Avalon-ST so
 
 | Signal | Direction | Description |
 |---|---|---|
-| `cam_reset_n` | out | Camera hardware reset (follows `reset_n`) |
 | `cam_pwdn` | out | Camera power-down (follows `ctrl_cam_pwdn`) |
 | `cam_href` | in | Horizontal reference (active line) |
 | `cam_vsync` | in | Vertical sync (frame boundary) |
 | `cam_data` | in | 8-bit pixel data bus |
+
+> `cam_reset_n` has been removed. The physical camera reset pin is now driven directly by `pclk_reset_controller.camera_reset_n` (see below).
 
 **FSM states**
 
@@ -62,7 +63,12 @@ Captures raw pixel data from an OV7670 camera and forwards it on an Avalon-ST so
 
 ## pclk_reset_controller
 
-Controls the reset of the pclk clock domain. Receives the camera pixel clock (`pclk_in`), forwards it as a Qsys clock source (`pclk_out`), and generates a reset signal (`pclk_reset_n`) synchronised to `pclk` via a two-FF synchroniser. The pclk domain stays in reset until both the system reset is deasserted **and** software explicitly releases it, allowing the HPS to hold the domain in reset during I2C camera configuration.
+Controls the reset of the pclk clock domain. Receives the camera pixel clock (`pclk_in`), forwards it as a Qsys clock source (`pclk_out`), and generates two reset signals:
+
+- `pclk_reset_n` — synchronised to `pclk` via a two-FF synchroniser (for the FPGA acquisition logic)
+- `camera_reset_n` — purely combinatorial from the `sys_clk` domain (for the physical camera reset pin)
+
+The separation avoids the circular dependency where the camera reset pin would depend on `pclk`, which the camera itself generates.
 
 **Interfaces**
 
@@ -70,31 +76,39 @@ Controls the reset of the pclk clock domain. Receives the camera pixel clock (`p
 |---|---|---|
 | `sys_clock` | Clock sink | — |
 | `sys_reset_n` | Reset sink | sys_clock |
-| `sys_mm` | Avalon-MM slave | sys_clock |
+| `sys_mm` | Avalon-MM slave (R/W) | sys_clock |
 | `pclk_in` | Clock sink | — |
 | `pclk_out` | Clock source | pclk_in |
 | `pclk_reset_n` | Reset source | pclk_in |
+| `camera_reset_n_conduit` | Conduit (export) | sys_clock |
 
 **Register map** (base address on main Avalon-MM bus)
 
 | Offset | Name | Access | Description |
 |---|---|---|---|
-| 0x0 | `sw_release` | W | Write bit 0 = 1 to release pclk reset; 0 to assert it |
+| 0x0 | `sw_release` | R/W | Bit 0 = 1 to release reset; 0 to assert it |
 
 **Reset logic**
 
 ```
-pclk_reset_n = synchronise_to_pclk(sys_reset_n AND sw_release)
+camera_reset_n = sys_reset_n AND sw_release          (combinatorial, sys_clk domain)
+pclk_reset_n   = synchronise_to_pclk(camera_reset_n) (two-FF, pclk domain)
 ```
 
-Assert is asynchronous (immediate). Deassert is synchronised to `pclk` (two-FF). Quartus attribute `SYNCHRONIZER_IDENTIFICATION FORCED` is set on the first FF.
+Assert is asynchronous (immediate). Deassert of `pclk_reset_n` is synchronised to `pclk`. Quartus attribute `SYNCHRONIZER_IDENTIFICATION FORCED` is set on the first FF.
+
+**Conduit pins**
+
+| Signal | Direction | Description |
+|---|---|---|
+| `camera_reset_n` | out | Physical camera reset pin — combinatorial, no pclk dependency |
 
 **Typical software sequence**
 
 1. Assert reset: write `0` to `sw_release`
-2. Configure camera via I2C
-3. Wait for `pclk` to stabilise
-4. Release reset: write `1` to `sw_release`
+2. Configure camera via I2C (camera is in reset, PCLK domain is held)
+3. Release reset: write `1` to `sw_release`
+4. `camera_reset_n` goes high immediately; `pclk_reset_n` follows after two pclk edges
 
 ---
 

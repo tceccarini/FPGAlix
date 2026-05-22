@@ -278,7 +278,7 @@ begin
 			ov7670_ctrl_if_scl_in                      => GPIO_0(29),
 			ov7670_ctrl_if_sda_oe                      => ov7670_ctrl_if_sda_oe,
 			ov7670_ctrl_if_scl_oe                      => ov7670_ctrl_if_scl_oe,
-			ov7670_data_if_cam_reset_n                 => GPIO_0(31),
+			ov7670_reset_n_camera_reset_n              => GPIO_0(31),
 			ov7670_data_if_cam_pwdn                    => GPIO_0(33),
 			ov7670_data_if_cam_href                    => GPIO_0(3),
 			ov7670_data_if_cam_vsync                   => GPIO_0(5),

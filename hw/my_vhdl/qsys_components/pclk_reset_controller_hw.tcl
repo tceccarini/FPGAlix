@@ -4,7 +4,7 @@
 
 
 # 
-# pclk_reset_controller "PCLK Reset Controller" v1.2
+# pclk_reset_controller "PCLK Reset Controller" v1.4
 # Tiziano Ceccarini 2026.05.21.11:45:23
 # Accepts the OV7670 pixel clock (pclk_in) and forwards it as a Qsys clock source (pclk_out). Controls the pclk domain reset by combining the system reset with a software-controlled release bit (Avalon-MM, bit 0). The pclk domain stays in reset until both the system reset is deasserted and software explicitly releases it, allowing the HPS to hold the pclk domain in reset during I2C camera configuration.
 # 
@@ -20,7 +20,7 @@ package require -exact qsys 16.1
 # 
 set_module_property DESCRIPTION "Accepts the OV7670 pixel clock (pclk_in) and forwards it as a Qsys clock source (pclk_out). Controls the pclk domain reset by combining the system reset with a software-controlled release bit (Avalon-MM, bit 0). The pclk domain stays in reset until both the system reset is deasserted and software explicitly releases it, allowing the HPS to hold the pclk domain in reset during I2C camera configuration."
 set_module_property NAME pclk_reset_controller
-set_module_property VERSION 1.2
+set_module_property VERSION 1.4
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
 set_module_property GROUP My
@@ -162,4 +162,19 @@ set_interface_property pclk_reset_n CMSIS_SVD_VARIABLES ""
 set_interface_property pclk_reset_n SVD_ADDRESS_GROUP ""
 
 add_interface_port pclk_reset_n pclk_reset_n reset_n Output 1
+
+
+#
+# connection point camera_reset_conduit
+#
+add_interface camera_reset_n_conduit conduit end
+set_interface_property camera_reset_n_conduit associatedClock sys_clock
+set_interface_property camera_reset_n_conduit associatedReset sys_reset_n
+set_interface_property camera_reset_n_conduit ENABLED true
+set_interface_property camera_reset_n_conduit EXPORT_OF ""
+set_interface_property camera_reset_n_conduit PORT_NAME_MAP ""
+set_interface_property camera_reset_n_conduit CMSIS_SVD_VARIABLES ""
+set_interface_property camera_reset_n_conduit SVD_ADDRESS_GROUP ""
+
+add_interface_port camera_reset_n_conduit camera_reset_n camera_reset_n Output 1
 

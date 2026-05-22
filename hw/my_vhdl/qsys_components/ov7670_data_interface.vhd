@@ -11,7 +11,6 @@ entity ov7670_data_interface is
         reset_n         : in  std_logic;
 
         -- OV7670 camera interface
-        cam_reset_n     : out std_logic;
         cam_pwdn        : out std_logic                     := '0';
         cam_href        : in  std_logic;
         cam_vsync       : in  std_logic;
@@ -55,7 +54,6 @@ architecture rtl of ov7670_data_interface is
 
 begin
 
-    cam_reset_n <= reset_n;
     cam_pwdn    <= ctrl_cam_pwdn;
 
     -- Avalon-MM process

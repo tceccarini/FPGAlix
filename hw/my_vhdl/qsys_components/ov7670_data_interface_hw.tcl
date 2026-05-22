@@ -4,7 +4,7 @@
 
 
 # 
-# ov7670_data_interface "OV7670 Data Interface" v1.0
+# ov7670_data_interface "OV7670 Data Interface" v1.1
 # Tiziano Ceccarini 2026.05.21.12:03:30
 # Receives raw pixel data from an OV7670 camera (pclk, href, vsync, 8-bit data bus) and forwards it as an Avalon-ST source with SOP/EOP framing and backpressure support. Dropped frames are counted and exposed via an Avalon-MM slave register. Frame acquisition is controlled by software through a ctrl register (enable, camera power-down, counter clear).
 # 
@@ -20,7 +20,7 @@ package require -exact qsys 16.1
 # 
 set_module_property DESCRIPTION "Receives raw pixel data from an OV7670 camera (pclk, href, vsync, 8-bit data bus) and forwards it as an Avalon-ST source with SOP/EOP framing and backpressure support. Dropped frames are counted and exposed via an Avalon-MM slave register. Frame acquisition is controlled by software through a ctrl register (enable, camera power-down, counter clear)."
 set_module_property NAME ov7670_data_interface
-set_module_property VERSION 1.0
+set_module_property VERSION 1.1
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
 set_module_property GROUP My
@@ -165,7 +165,6 @@ set_interface_property camera_if_conduit PORT_NAME_MAP ""
 set_interface_property camera_if_conduit CMSIS_SVD_VARIABLES ""
 set_interface_property camera_if_conduit SVD_ADDRESS_GROUP ""
 
-add_interface_port camera_if_conduit cam_reset_n cam_reset_n Output 1
 add_interface_port camera_if_conduit cam_pwdn cam_pwdn Output 1
 add_interface_port camera_if_conduit cam_href cam_href Input 1
 add_interface_port camera_if_conduit cam_vsync cam_vsync Input 1

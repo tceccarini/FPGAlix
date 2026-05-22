@@ -449,6 +449,22 @@
          type = "String";
       }
    }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element soc_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element st_adapter_0
    {
       datum _sortIndex
@@ -561,6 +577,11 @@
    name="ov7670_pclk"
    internal="pclk_reset_controller_0.pclk_in"
    type="clock"
+   dir="end" />
+ <interface
+   name="ov7670_reset_n"
+   internal="pclk_reset_controller_0.camera_reset_n_conduit"
+   type="conduit"
    dir="end" />
  <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
  <module
@@ -1383,14 +1404,14 @@
  <module
    name="ov7670_data_interface_0"
    kind="ov7670_data_interface"
-   version="1.0"
+   version="1.1"
    enabled="1">
   <parameter name="FRAME_SIZE" value="307200" />
  </module>
  <module
    name="pclk_reset_controller_0"
    kind="pclk_reset_controller"
-   version="1.2"
+   version="1.4"
    enabled="1" />
  <module
    name="st_adapter_0"
