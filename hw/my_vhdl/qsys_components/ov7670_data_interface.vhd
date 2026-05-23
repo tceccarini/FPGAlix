@@ -143,10 +143,13 @@ begin
                         st_sop   <= '0';
                         st_eop   <= '0';
                         if st_ready = '1' then
-                            -- close the dropped packet with eop, then resync
+                            -- downstream recovered: close the dropped packet with a bare EOP, then resync
                             st_valid <= '1';
                             st_eop   <= '1';
                             state    <= WAIT_SYNC;
+                        elsif vsync_r = '1' and cam_vsync = '0' then
+                            -- still in backpressure: another frame slipped by unread, count it
+                            stat_dropped_cnt <= std_logic_vector(unsigned(stat_dropped_cnt) + 1);
                         end if;
 
                 end case;

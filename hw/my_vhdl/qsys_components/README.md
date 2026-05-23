@@ -57,7 +57,7 @@ Captures raw pixel data from an OV7670 camera and forwards it on an Avalon-ST so
 |---|---|
 | `WAIT_SYNC` | Waits for falling edge of `cam_vsync` and `ctrl_enabled = 1`. Resets byte counter. |
 | `ACQUIRE` | Transfers pixels while `cam_href = 1`. Raises SOP on byte 0, EOP on byte `FRAME_SIZE-1`. Frame termination is driven by `FRAME_SIZE`, **not** by `cam_vsync`. If `st_ready = 0` at any point, increments `stat_dropped_cnt` and transitions to `WAIT_READY`. |
-| `WAIT_READY` | Downstream applied backpressure mid-frame. Holds until `st_ready = 1`, then sends a closing EOP (allowing the downstream to discard the incomplete packet) and returns to `WAIT_SYNC`. |
+| `WAIT_READY` | Downstream applied backpressure mid-frame. Holds until `st_ready = 1`, then sends a closing EOP (allowing the downstream to discard the incomplete packet) and returns to `WAIT_SYNC`. Each additional VSYNC falling edge detected while waiting increments `stat_dropped_cnt` (one count per missed frame). |
 
 ---
 

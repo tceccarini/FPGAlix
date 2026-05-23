@@ -20,7 +20,7 @@ package require -exact qsys 16.1
 # 
 set_module_property DESCRIPTION "Receives raw pixel data from an OV7670 camera (pclk, href, vsync, 8-bit data bus) and forwards it as an Avalon-ST source with SOP/EOP framing and backpressure support. Dropped frames are counted and exposed via an Avalon-MM slave register. Frame acquisition is controlled by software through a ctrl register (enable, camera power-down, counter clear)."
 set_module_property NAME ov7670_data_interface
-set_module_property VERSION 1.1
+set_module_property VERSION 1.2
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
 set_module_property GROUP My
