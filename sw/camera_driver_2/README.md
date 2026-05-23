@@ -1,7 +1,7 @@
 # camera_driver_2
 
 V4L2 driver for OV7670 camera on Cyclone V SoC.  
-Captures 640×480 Bayer BGGR8 at 30 fps via Altera mSGDMA (S2MM).
+Captures 640×480 RGGB Bayer (SRGGB8) at 30 fps via Altera mSGDMA (S2MM).
 
 Rewrite of `camera_driver` incorporating fixes discovered during testing:
 - kernel patch to `altera-msgdma.c` required (see below)
@@ -160,20 +160,8 @@ insmod /tmp/fpgalix_camera.ko ignore_residue=1
 ```bash
 v4l2-ctl -d /dev/video0 --get-fmt-video
 # Width/Height: 640/480
-# Pixel Format: 'BA81' (SBGGR8)
+# Pixel Format: 'RGGB' (SRGGB8)
 ```
-
-### Live preview su PC
-
-Sul PC (richiede `numpy` e `opencv-python`):
-```bash
-ssh root@192.168.0.238 \
-  "v4l2-ctl -d /dev/video0 --set-fmt-video=width=640,height=480,pixelformat=BA81 \
-   --stream-mmap --stream-to=- 2>/dev/null" \
-  | python3 utils/view.py
-```
-
-Premere `q` nella finestra per fermare, oppure `Ctrl+C` nel terminale.
 
 Lo stream può essere fermato e riavviato senza rmmod/insmod: al prossimo
 `STREAMON` il driver rilascia e riacquisisce il canale DMA, ottenendo un
@@ -189,7 +177,7 @@ v4l2-ctl -d /dev/video0 --stream-mmap --stream-count=10 --stream-to=/tmp/raw.bin
 import numpy as np, cv2
 raw = np.fromfile('/tmp/raw.bin', dtype=np.uint8)
 frame = raw[:640*480].reshape(480, 640)
-bgr = cv2.cvtColor(frame, cv2.COLOR_BayerBG2BGR)
+bgr = cv2.cvtColor(frame, cv2.COLOR_BayerRG2BGR_EA)
 cv2.imwrite('/tmp/frame.png', bgr)
 ```
 
@@ -200,7 +188,100 @@ rmmod fpgalix_camera
 
 ---
 
-## Diagnostica
+## Debug utilities
+
+Scripts and tools in `utils/debug/`.
+
+### End-to-end example
+
+All commands run on the target unless noted otherwise.
+
+**1. Release pclk domain reset**
+```bash
+./resetCtrl.sh          # choose 2 — Deassert reset
+```
+
+**2. Configure OV7670 via I2C**
+```bash
+./ov7670_ctrlif_set.sh  # choose Bayer mode (1 = Raw, 2 = Processed)
+```
+Registers are written and read back automatically at the end.
+
+**3. Enable frame acquisition**
+```bash
+./ov7670_dataif_ctrl.sh  # choose 1 — Enable frame acquisition
+```
+
+**4. Load the kernel module**
+```bash
+insmod /tmp/fpgalix_camera.ko
+```
+
+**5. Stream to PC and display**
+```bash
+# run on PC:
+ssh root@192.168.0.238 \
+  "v4l2-ctl -d /dev/video0 --stream-mmap --stream-to=- 2>/dev/null" \
+  | python3 utils/debug/view.py -dwg
+```
+
+---
+
+### ov7670_ctrlif_set.sh — Camera initialisation
+
+Programs the minimal OV7670 register set for VGA Bayer RGB at 30 fps over
+SCCB (I2C bus 1, address 0x21), then reads back every register to verify.
+
+#### Register 0xB0 — Processed Bayer RGB
+
+When `COM7 = 0x05` (Processed Bayer RGB), register **0xB0 must be set to 0x8C**.
+This register is undocumented in the OV7670 datasheet. Without it the image
+has a strong green cast and is washed out regardless of any white-balance
+adjustment. `ov7670_ctrlif_set.sh` applies this write automatically when
+Processed Bayer mode is selected.
+
+> **Provenance note.** Register 0xB0 does not appear in the official Omnivision
+> OV7670 documentation [datasheet v1.4, 2006]. The value 0x8C is derived from
+> the Linux mainline driver `drivers/media/i2c/ov7670.c`, where a similar write
+> is explicitly labelled a *"magic reserved value"*. The corrective effect on
+> colour channels (R/G) is empirically documented by Połeć (2012) and in the
+> ArduCAM implementation, where the variant 0x8C also appears.
+>
+> **References**
+> 1. Omnivision Technologies, *OV7670/OV7171 CMOS VGA CameraChip Implementation
+>    Guide*, v1.0, 2005 (NDA; publicly leaked).
+> 2. Omnivision Technologies, *OV7670/OV7171 Datasheet*, v1.4, August 2006 —
+>    <https://people.ece.cornell.edu/land/courses/ece4760/FinalProjects/f2021/jfw225_aei23_dsb298/jfw225_aei23_dsb298/OV7670_2006.pdf>
+> 3. Linux kernel, `drivers/media/i2c/ov7670.c` — in-tree; original author
+>    Jonathan Corbet (2008); commit history on kernel.org.
+> 4. Połeć J., "OV7670 YUV demystified", *ThinkSmallThings* blog, 3 Nov 2012.
+> 5. ArduCAM, *Arduino/OV7670FIFO* repository, `OV7670FIFO.ino`,
+>    function `SetupCameraUndocumentedRegisters()`.
+
+### view.py — Live preview
+
+Reads raw Bayer frames from stdin and displays them in a window. A processing
+mode flag is mandatory; `-F` adds fullscreen.
+
+| Flag   | Pipeline                                                |
+|--------|---------------------------------------------------------|
+| `-r`   | Raw Bayer as greyscale — no processing                  |
+| `-d`   | Edge-Aware demosaicing (RGGB pattern)                   |
+| `-dw`  | Demosaicing + per-channel white balance (1–99% stretch) |
+| `-dwg` | Demosaicing + white balance + gamma 2.2                 |
+| `-F`   | Fullscreen (combinable with any mode)                   |
+
+```bash
+ssh root@192.168.0.238 \
+  "v4l2-ctl -d /dev/video0 --stream-mmap --stream-to=- 2>/dev/null" \
+  | python3 utils/debug/view.py -dwg
+```
+
+Press `q` to quit, or `Ctrl+C` in the terminal.
+
+---
+
+## Diagnostics
 
 | Sintomo | Causa probabile |
 |---|---|

@@ -16,7 +16,7 @@
 #define FPGALIX_MIN_BUFFERS     3
 
 /* ---- Pixel format ------------------------------------------------------- */
-#define FPGALIX_PIXEL_FMT       V4L2_PIX_FMT_SGRBG8
+#define FPGALIX_PIXEL_FMT       V4L2_PIX_FMT_SRGGB8
 
 /* ---- Frame rate --------------------------------------------------------- */
 #define FPGALIX_FPS_NUM         1

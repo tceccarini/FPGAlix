@@ -12,8 +12,8 @@
 
 ## ✓ Bayer order verificato con OV7670 reale (2026-05-22)
 
-`FPGALIX_PIXEL_FMT` aggiornato a `V4L2_PIX_FMT_SGRBG8` (GRBG).
-Verificato empiricamente su frame reale — pattern 3 (BayerGR) in OpenCV.
+`FPGALIX_PIXEL_FMT` aggiornato a `V4L2_PIX_FMT_SRGGB8` (RGGB).
+Verificato empiricamente su frame reale — pattern BayerRG in OpenCV.
 
 ---
 
