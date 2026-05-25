@@ -1,5 +1,7 @@
 #include "Streamer.hpp"
 #include "exception/Exceptions.hpp"
+#include <opencv2/opencv.hpp>
+#include <vector>
 
 namespace FPGAlix {
 
@@ -26,18 +28,31 @@ void Streamer::validateFrame(const Frame &frame) const {
         throw ExceptionInvalidFormat("Streamer: frame mat is not contiguous — zero-copy push not safe");
 }
 
-void Streamer::onMediaConfigure(GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer data) {
+void Streamer::onMediaConfigure(GstRTSPMediaFactory *, GstRTSPMedia *media, gpointer data) {
     Streamer *self = static_cast<Streamer*>(data);
     GstElement *pipeline = gst_rtsp_media_get_element(media);
     GstElement *src = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline), "src");
+    if (!src) {
+        gst_object_unref(pipeline);
+        return;
+    }
 
-    const char *fmt = (self->m_format == CV_8UC1) ? "GRAY8" : "BGR";
-    GstCaps *caps = gst_caps_new_simple("video/x-raw",
-        "format",    G_TYPE_STRING,     fmt,
-        "width",     G_TYPE_INT,        self->m_width,
-        "height",    G_TYPE_INT,        self->m_height,
-        "framerate", GST_TYPE_FRACTION, self->m_fps, 1,
-        NULL);
+    GstCaps *caps;
+    if (self->m_encoding == Encoding::MJPEG) {
+        caps = gst_caps_new_simple("image/jpeg",
+            "width",     G_TYPE_INT,        self->m_width,
+            "height",    G_TYPE_INT,        self->m_height,
+            "framerate", GST_TYPE_FRACTION, self->m_fps, 1,
+            NULL);
+    } else {
+        const char *fmt = (self->m_format == CV_8UC1) ? "GRAY8" : "BGR";
+        caps = gst_caps_new_simple("video/x-raw",
+            "format",    G_TYPE_STRING,     fmt,
+            "width",     G_TYPE_INT,        self->m_width,
+            "height",    G_TYPE_INT,        self->m_height,
+            "framerate", GST_TYPE_FRACTION, self->m_fps, 1,
+            NULL);
+    }
     g_object_set(src, "caps", caps, "format", GST_FORMAT_TIME, "is-live", TRUE, NULL);
     gst_caps_unref(caps);
 
@@ -53,37 +68,59 @@ void Streamer::txThread() {
     const GstClockTime duration = gst_util_uint64_scale_int(1, GST_SECOND, m_fps);
 
     while (m_running) {
+        Frame *frame = nullptr;
         try {
-            Frame *frame = m_buffer.pop();
-            if (!m_appsrc) continue;
+            frame = m_buffer.pop();
+        }
+        catch (const ExceptionQueueEmpty &) {
+            break; /* forceNotify() called — clean exit */
+        }
 
+        if (!m_appsrc) { m_buffer.giveBack(frame); continue; }
+
+        try {
             validateFrame(*frame);
+        }
+        catch (const ExceptionInvalidFormat &) {
+            m_buffer.giveBack(frame);
+            continue;
+        }
 
+        GstBuffer *buf;
+        if (m_encoding == Encoding::MJPEG) {
+            auto *jpegBuf = new std::vector<uchar>();
+            cv::imencode(".jpg", frame->mat(), *jpegBuf);
+            m_buffer.giveBack(frame); /* frame copiato nel JPEG — libero subito */
+            buf = gst_buffer_new_wrapped_full(
+                GST_MEMORY_FLAG_READONLY,
+                jpegBuf->data(), jpegBuf->size(), 0, jpegBuf->size(),
+                jpegBuf,
+                [](gpointer d) { delete static_cast<std::vector<uchar>*>(d); }
+            );
+        } else {
             const int frameSize = frame->mat().total() * frame->mat().elemSize();
-            GstBuffer *buf = gst_buffer_new_wrapped_full(
+            buf = gst_buffer_new_wrapped_full(
                 GST_MEMORY_FLAG_READONLY,
                 frame->mat().data,
                 frameSize, 0, frameSize,
                 frame, onFrameRelease
             );
-            GST_BUFFER_PTS(buf)      = m_timestamp;
-            GST_BUFFER_DURATION(buf) = duration;
-            m_timestamp += duration;
+        }
 
-            gst_app_src_push_buffer(m_appsrc, buf);
-        }
-        catch (const ExceptionQueueEmpty &) {
-            break; /* forceNotify() called — clean exit */
-        }
-        catch (const ExceptionInvalidFormat &) {
-            /* malformed frame — skip it and keep streaming */
-        }
+        GST_BUFFER_PTS(buf)      = m_timestamp;
+        GST_BUFFER_DURATION(buf) = duration;
+        m_timestamp += duration;
+
+        gst_app_src_push_buffer(m_appsrc, buf);
     }
 }
 
 void Streamer::start() {
+    gst_init(NULL, NULL);
     m_running = true;
     m_loop    = g_main_loop_new(NULL, FALSE);
+
+    m_server = gst_rtsp_server_new();
 
     GstRTSPMountPoints  *mounts  = gst_rtsp_server_get_mount_points(m_server);
     GstRTSPMediaFactory *factory = gst_rtsp_media_factory_new();
@@ -92,12 +129,12 @@ void Streamer::start() {
     switch (m_encoding) {
         case Encoding::UNCOMPRESSED:
             if (m_format == CV_8UC1)
-                pipeline = "( appsrc name=src ! rtpvrawpay name=pay0 pt=96 )";
+                pipeline = "( appsrc name=src ! videoconvert ! video/x-raw,format=RGB ! rtpvrawpay name=pay0 pt=96 )";
             else
                 pipeline = "( appsrc name=src ! videoconvert ! video/x-raw,format=RGB ! rtpvrawpay name=pay0 pt=96 )";
             break;
         case Encoding::MJPEG:
-            pipeline = "( appsrc name=src ! videoconvert ! jpegenc ! rtpjpegpay name=pay0 pt=26 )";
+            pipeline = "( appsrc name=src ! rtpjpegpay name=pay0 pt=26 )";
             break;
         case Encoding::H264:
             pipeline = "( appsrc name=src ! videoconvert ! openh264enc ! rtph264pay name=pay0 pt=96 )";
@@ -111,7 +148,6 @@ void Streamer::start() {
     gst_rtsp_mount_points_add_factory(mounts, "/stream", factory);
     g_object_unref(mounts);
 
-    m_server = gst_rtsp_server_new();
     gst_rtsp_server_attach(m_server, NULL);
 
     m_loopThread = std::thread([this] { g_main_loop_run(m_loop); });

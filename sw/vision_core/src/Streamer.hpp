@@ -23,7 +23,13 @@ public:
        width/height: frame dimensions, must match FrameBuffer
        fps:      stream framerate, defaults to 30
        encoding: compression algorithm
-       format:   OpenCV pixel type of the frames (CV_8UC1 = GRAY8, CV_8UC3 = BGR) */
+       format:   OpenCV pixel type of the frames (CV_8UC1 = GRAY8, CV_8UC3 = BGR)
+
+       NOTE — UNCOMPRESSED + CV_8UC1: RFC 4175 (rtpvrawpay) does not define a
+       GRAY8 payload type. The pipeline internally converts GRAY8→RGB via
+       videoconvert before packetising (I420 is avoided because videoconvert
+       sets U/V to 0 instead of 128, producing a green tint). An intermediate
+       colorspace conversion therefore still occurs even in "uncompressed" mode. */
     explicit Streamer(FrameBuffer &buffer, int width, int height, int fps = 30,
                       Encoding encoding = Encoding::MJPEG,
                       int format = CV_8UC3);
