@@ -13,21 +13,25 @@ public:
        buffer: FrameBuffer to push captured frames into. */
     WebCamFilteredCapturer(const std::string &device, FrameBuffer &buffer);
 
-    /* Opens device, requests desired size, reads back what the driver
-       actually negotiated, then closes. Use the returned size to construct
-       FrameBuffer and Streamer before calling start(). */
-    static cv::Size probeSize(const std::string &device, cv::Size desired);
+    /* Opens device once, requests desiredSize and desiredFps, writes the
+       values actually negotiated by the driver into *outSize and *outFps,
+       then closes. Use the results to construct FrameBuffer and Streamer
+       before calling start(). */
+    static void probeDevice(const std::string &device,
+                            cv::Size desiredSize, int desiredFps,
+                            cv::Size *outSize, int *outFps);
 
-    /* Sets the resolution that openDevice() will request and verify.
-       Must be called before start(). Use probeSize() to find a size the
+    /* Sets the resolution and framerate that openDevice() will request.
+       Must be called before start(). Use probeDevice() to find values the
        device actually supports. */
-    void setResolution(cv::Size size);
+    void setDevice(cv::Size resolution, int fps);
 
     cv::VideoCapture& openDevice() override;
 
 private:
     std::string      m_device;
     cv::Size         m_resolution{640, 480};
+    int              m_fps{30};
     cv::VideoCapture m_cap;
 };
 

@@ -30,9 +30,8 @@ public:
        videoconvert before packetising (I420 is avoided because videoconvert
        sets U/V to 0 instead of 128, producing a green tint). An intermediate
        colorspace conversion therefore still occurs even in "uncompressed" mode. */
-    explicit Streamer(FrameBuffer &buffer, int width, int height, int fps = 30,
-                      Encoding encoding = Encoding::MJPEG,
-                      int format = CV_8UC3);
+    explicit Streamer(FrameBuffer &buffer, int width, int height, int fps,
+                      Encoding encoding, int format);
     virtual ~Streamer();
 
     /* Starts the GMainLoop thread and the transmission thread */

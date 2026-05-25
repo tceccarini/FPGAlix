@@ -6,30 +6,35 @@ namespace FPGAlix {
 WebCamFilteredCapturer::WebCamFilteredCapturer(const std::string &device, FrameBuffer &buffer)
     : FilteredCapturer(buffer), m_device(device) {}
 
-cv::Size WebCamFilteredCapturer::probeSize(const std::string &device, cv::Size desired) {
-    cv::VideoCapture cap(device);
+void WebCamFilteredCapturer::probeDevice(const std::string &device,
+                                         cv::Size desiredSize, int desiredFps,
+                                         cv::Size *outSize, int *outFps) {
+    cv::VideoCapture cap(device, cv::CAP_V4L2);
     if (!cap.isOpened())
-        throw ExceptionDeviceError("WebCamFilteredCapturer::probeSize: failed to open " + device);
-    cap.set(cv::CAP_PROP_FRAME_WIDTH,  desired.width);
-    cap.set(cv::CAP_PROP_FRAME_HEIGHT, desired.height);
-    cv::Size actual(static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH)),
-                    static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+        throw ExceptionDeviceError("WebCamFilteredCapturer::probeDevice: failed to open " + device);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH,  desiredSize.width);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, desiredSize.height);
+    cap.set(cv::CAP_PROP_FPS,          desiredFps);
+    *outSize = cv::Size(static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH)),
+                        static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+    int actual = static_cast<int>(cap.get(cv::CAP_PROP_FPS));
+    *outFps = (actual > 0) ? actual : desiredFps;
     cap.release();
-    return actual;
 }
 
-void WebCamFilteredCapturer::setResolution(cv::Size size) {
-    m_resolution = size;
+void WebCamFilteredCapturer::setDevice(cv::Size resolution, int fps) {
+    m_resolution = resolution;
+    m_fps        = fps;
 }
 
 cv::VideoCapture& WebCamFilteredCapturer::openDevice() {
-    m_cap.open(m_device);
+    m_cap.open(m_device, cv::CAP_V4L2);
     if (!m_cap.isOpened())
         throw ExceptionDeviceError("WebCamFilteredCapturer::openDevice: failed to open " + m_device);
     m_cap.set(cv::CAP_PROP_CONVERT_RGB,  1);   // mandatory: deliver BGR frames
     m_cap.set(cv::CAP_PROP_FRAME_WIDTH,  m_resolution.width);
     m_cap.set(cv::CAP_PROP_FRAME_HEIGHT, m_resolution.height);
-    m_cap.set(cv::CAP_PROP_FPS,          30);
+    m_cap.set(cv::CAP_PROP_FPS,          m_fps);
 
     cv::Size actual(static_cast<int>(m_cap.get(cv::CAP_PROP_FRAME_WIDTH)),
                     static_cast<int>(m_cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
