@@ -1,26 +1,25 @@
 #pragma once
 
 #include "Filter.hpp"
-#include <opencv2/imgproc.hpp>
+#include <opencv2/core.hpp>
 
-// Generic color space conversion filter wrapping cv::cvtColor.
-// If the conversion produces the same type as the input, filter() returns
-// input directly without copying (detected automatically after the first call).
+// Converts a frame to a fixed output type (CV_8UC1 / CV_8UC3).
+// The conversion code is chosen automatically from the input type at filter time:
+//   CV_8UC3 → CV_8UC1 : BGR2GRAY
+//   CV_8UC1 → CV_8UC3 : GRAY2BGR
+//   same type          : copy (or no-op mid-pipeline)
 class FilterConversion : public Filter {
 public:
-    // code: conversion to apply (e.g. cv::COLOR_BGR2GRAY, cv::COLOR_BGR2HSV).
-    explicit FilterConversion(cv::ColorConversionCodes code);
+    explicit FilterConversion(int outputType);
 
-    // Converts input using the code passed at construction.
-    // On the first call the output type is learned; subsequent calls with
-    // matching input type are returned as-is without invoking cv::cvtColor.
-    cv::Mat& filter(cv::Mat& input) override;
-    // Writes the result into *output if provided, otherwise into the internal mat.
-    // Same type-match short-circuit as filter(input).
-    cv::Mat& filter(cv::Mat& input, cv::Mat* output, bool preserveInput = false) override;
+    cv::Mat& filter(cv::Mat& input, bool preserveInput) override;
+
+    // Writes the result directly into *output — intended for the last filter
+    // in a pipeline writing into a pre-allocated buffer (e.g. FrameBuffer frame).
+    // Type compatibility is the caller's responsibility.
+    void filter(cv::Mat& input, cv::Mat* output);
 
 private:
-    cv::ColorConversionCodes m_code;
+    int     m_outputType;
     cv::Mat m_dst;
-    int m_outputType{-1}; // -1 until the first filter() call
 };

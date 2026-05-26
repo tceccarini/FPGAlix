@@ -1,21 +1,23 @@
 #include "FilterConversion.hpp"
+#include "exception/ExceptionInvalidFormat.hpp"
+#include <opencv2/imgproc.hpp>
 
-FilterConversion::FilterConversion(cv::ColorConversionCodes code)
-    : m_code(code) {}
+FilterConversion::FilterConversion(int outputType) : m_outputType(outputType) {}
 
-cv::Mat& FilterConversion::filter(cv::Mat& input) {
-    return filter(input, nullptr);
+void FilterConversion::filter(cv::Mat& input, cv::Mat* output) {
+    if (input.type() == CV_8UC3 && m_outputType == CV_8UC1)
+        cv::cvtColor(input, *output, cv::COLOR_BGR2GRAY);
+    else if (input.type() == CV_8UC1 && m_outputType == CV_8UC3)
+        cv::cvtColor(input, *output, cv::COLOR_GRAY2BGR);
+    else if (input.type() == m_outputType)
+        input.copyTo(*output);
+    else
+        throw FPGAlix::ExceptionInvalidFormat("FilterConversion: unsupported type combination");
 }
 
-cv::Mat& FilterConversion::filter(cv::Mat& input, cv::Mat* output, bool /* preserveInput */) {
-    cv::Mat& dst = output ? *output : m_dst;
-
-    // If input and output types match (learned after the first call), the
-    // conversion is a no-op from a type perspective — return input directly.
-    if (m_outputType != -1 && input.type() == m_outputType)
+cv::Mat& FilterConversion::filter(cv::Mat& input, bool preserveInput) {
+    if (input.type() == m_outputType && !preserveInput)
         return input;
-
-    cv::cvtColor(input, dst, m_code);
-    m_outputType = dst.type();
-    return dst;
+    filter(input, &m_dst);
+    return m_dst;
 }

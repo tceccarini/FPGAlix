@@ -65,5 +65,15 @@ void FrameBuffer::giveBack(Frame *frame) {
     frame->clearBusy();
 }
 
+const Frame& FrameBuffer::getFrame(int index) const {
+    if (index < 0 || index >= m_size)
+        throw std::out_of_range("FrameBuffer::getFrame: index out of range");
+    return *m_pool[index];
+
+}
+
+int FrameBuffer::getSize() const {
+    return m_size;
+}
 
 } // namespace FPGAlix

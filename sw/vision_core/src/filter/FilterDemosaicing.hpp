@@ -16,11 +16,9 @@ public:
     // Example: cv::COLOR_BayerBG2BGR_VNG
     explicit FilterDemosaicing(cv::ColorConversionCodes code);
 
-    // Expects a CV_8UC1 Bayer-mosaiced input.
-    // Returns a reference to an internal mat with the demosaiced result.
-    cv::Mat& filter(cv::Mat& input) override;
-    // Writes the demosaiced result into *output if provided, otherwise into the internal mat.
-    cv::Mat& filter(cv::Mat& input, cv::Mat* output, bool preserveInput = false) override;
+    // Expects a CV_8UC1 Bayer-mosaiced input. Always writes to an internal mat
+    // (cvtColor cannot work in place across type changes); preserveInput is ignored.
+    cv::Mat& filter(cv::Mat& input, bool preserveInput) override;
 
 private:
     // Throws if code is not a Bayer-to-BGR or Bayer-to-GRAY conversion.

@@ -36,6 +36,12 @@ public:
        Sets m_forceNotify to true and wakes the condition variable. */
     void forceNotify();
 
+    /* Returns the frame at the given pool index. Valid after construction. */
+    const Frame& getFrame(int index) const;
+
+    /* Returns the pool capacity — total number of pre-allocated Frame slots. */
+    int getSize() const;
+
 private:
     Frame **m_pool;    /* pre-allocated frame objects */
     Frame **m_queue;   /* circular FIFO of Frame pointers into m_pool */

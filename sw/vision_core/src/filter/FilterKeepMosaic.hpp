@@ -24,13 +24,9 @@ public:
     FilterKeepMosaic(int output_format, cv::ColorConversionCodes bayer_code);
 
     // Expects a CV_8UC1 Bayer-mosaiced input.
-    // CV_8UC1 output: returns input directly (zero copies).
-    // CV_8UC3 output: returns a reference to an internal mat.
-    cv::Mat& filter(cv::Mat& input) override;
-    // CV_8UC1: output is ignored, input is returned as-is.
-    // CV_8UC3: writes into *output if provided, otherwise into the internal mat.
-    //          External buffers are always zero-initialised; the internal mat only once.
-    cv::Mat& filter(cv::Mat& input, cv::Mat* output, bool preserveInput = false) override;
+    // CV_8UC1 output: returns input directly (zero copies); preserveInput ignored.
+    // CV_8UC3 output: writes into internal mat (zero-init on first call only).
+    cv::Mat& filter(cv::Mat& input, bool preserveInput) override;
 
 private:
     // Maps a Bayer code to the BGR channel index for each of the 4 tile

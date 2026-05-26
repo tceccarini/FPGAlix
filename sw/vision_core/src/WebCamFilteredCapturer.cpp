@@ -3,8 +3,8 @@
 
 namespace FPGAlix {
 
-WebCamFilteredCapturer::WebCamFilteredCapturer(const std::string &device, FrameBuffer &buffer)
-    : FilteredCapturer(buffer), m_device(device) {}
+WebCamFilteredCapturer::WebCamFilteredCapturer(const std::string &device, FrameBuffer &outputBuffer)
+    : FilteredCapturer(outputBuffer), m_device(device) {}
 
 void WebCamFilteredCapturer::probeDevice(const std::string &device,
                                          cv::Size desiredSize, int desiredFps,

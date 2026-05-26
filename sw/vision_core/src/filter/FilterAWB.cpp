@@ -4,21 +4,11 @@
 FilterAWB::FilterAWB(float clip_percent)
     : m_clipPercent(clip_percent) {}
 
-cv::Mat& FilterAWB::filter(cv::Mat& input) {
-    return filter(input, nullptr);
-}
-
-cv::Mat& FilterAWB::filter(cv::Mat& input, cv::Mat* output, bool preserveInput) {
+cv::Mat& FilterAWB::filter(cv::Mat& input, bool preserveInput) {
     if (input.type() != CV_8UC3)
         throw FPGAlix::ExceptionInvalidFormat("FilterAWB::filter: expected CV_8UC3 input");
 
-    cv::Mat* dstPtr;
-    if (!preserveInput)
-        dstPtr = &input;
-    else if (output != nullptr)
-        dstPtr = output;
-    else
-        dstPtr = &m_dst;
+    cv::Mat* dstPtr = preserveInput ? &m_dst : &input;
 
     cv::Mat& dst = *dstPtr;
 

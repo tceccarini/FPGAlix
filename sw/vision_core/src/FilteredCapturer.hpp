@@ -6,13 +6,16 @@
 #include <vector>
 #include "Capturer.hpp"
 #include "filter/Filter.hpp"
+#include "filter/FilterConversion.hpp"
 #include "exception/Exceptions.hpp"
 
 namespace FPGAlix {
 
 /* Extends Capturer with an owned, double-buffered filter pipeline.
    The pipeline runs top-to-bottom: position 0 is applied first,
-   position size()-1 is applied last.
+   position size()-1 is applied last. After all user filters, m_finalConversion
+   converts the result to the output buffer type and writes it directly into
+   the FrameBuffer frame — no extra copy.
 
    Caller thread: modifies m_pending via append/insert/remove/replace,
    then calls commit() to schedule the new pipeline.
@@ -24,7 +27,7 @@ namespace FPGAlix {
    openDevice() remains pure-virtual: a concrete subclass must implement it. */
 class FilteredCapturer : public Capturer {
 public:
-    explicit FilteredCapturer(FrameBuffer &buffer);
+    explicit FilteredCapturer(FrameBuffer &outputBuffer);
     ~FilteredCapturer() override = default;
 
     /* --- pipeline editing (caller thread) --------------------------------- */
@@ -60,21 +63,27 @@ public:
        Valid positions for insertFilter are [0, size()]. */
     size_t size() const;
 
+    /* Removes all filters from the pending pipeline.
+       Must be followed by commit() to take effect. */
+    void clearAllFilters();
+
     /* Blocks until process() has swapped the pending pipeline into the active
        one. After commit() returns, m_pending is safe to modify again. */
     void commit();
 
     /* --- capture thread --------------------------------------------------- */
 
-    /* Swaps in the pending pipeline if commit() was called, then applies
-       the active filter chain. No lock is held during filtering. */
+    /* Swaps in the pending pipeline if commit() was called, runs the active
+       filter chain in-place, then writes the result into mat_out via
+       m_finalConversion. No lock is held during filtering. */
     void process(cv::Mat &mat_in, cv::Mat &mat_out) override;
 
 private:
     using FilterList = std::vector<std::shared_ptr<Filter>>;
 
-    FilterList m_active;   // used exclusively by process()
-    FilterList m_pending;  // modified by the caller; protected by m_mutex
+    FilterList       m_active;           // used exclusively by process()
+    FilterList       m_pending;          // modified by the caller; protected by m_mutex
+    FilterConversion m_finalConversion;  // writes last filtered frame into mat_out
 
     std::atomic<bool>        m_dirty{false};
     std::mutex               m_mutex;     // guards m_pending and the swap

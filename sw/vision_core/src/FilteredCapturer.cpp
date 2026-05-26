@@ -1,9 +1,11 @@
 #include "FilteredCapturer.hpp"
+#include "Utils.hpp"
 
 namespace FPGAlix {
 
-FilteredCapturer::FilteredCapturer(FrameBuffer &buffer)
-    : Capturer(buffer) {}
+FilteredCapturer::FilteredCapturer(FrameBuffer &outputBuffer)
+    : Capturer(outputBuffer),
+      m_finalConversion(outputBuffer.getFrame(0).mat().type()) {}
 
 /* --- pipeline editing ----------------------------------------------------- */
 
@@ -59,6 +61,10 @@ size_t FilteredCapturer::size() const {
     return m_pending.size();
 }
 
+void FilteredCapturer::clearAllFilters() {
+    m_pending.clear();
+}
+
 void FilteredCapturer::commit() {
     if (!isRunning()) {
         m_active = m_pending;
@@ -81,15 +87,15 @@ void FilteredCapturer::process(cv::Mat &mat_in, cv::Mat &mat_out) {
         m_swapDone.notify_one();
     }
 
-    if (m_active.empty()) {
-        mat_in.copyTo(mat_out);
-        return;
-    }
-
     cv::Mat *src = &mat_in;
-    for (size_t i = 0; i + 1 < m_active.size(); ++i)
-        src = &m_active[i]->filter(*src);
-    m_active.back()->filter(*src, &mat_out, /*preserveInput=*/true);
+    try {
+        for (auto &f : m_active)
+            src = &f->filter(*src, false);
+        m_finalConversion.filter(*src, &mat_out);
+    } catch (const std::exception &e) {
+        rprint("FilteredCapturer: filter exception: %s — pipeline cleared\n", e.what());
+        m_active.clear();
+    }
 }
 
 } // namespace FPGAlix

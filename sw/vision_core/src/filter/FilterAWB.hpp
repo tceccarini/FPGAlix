@@ -9,7 +9,8 @@
 //   2. Clips clip_percent of pixels at each end of the histogram.
 //   3. Linearly stretches the remaining range to [0, 255].
 //
-// Operates in place — input is modified and returned directly.
+// preserveInput=false (default): modifies input in place and returns it.
+// preserveInput=true:            writes result to an internal buffer, input untouched.
 // Throws FPGAlix::ExceptionInvalidFormat if input is not CV_8UC3.
 //
 // Implementation uses two passes over the raw pixel data with stack-allocated
@@ -20,12 +21,9 @@ public:
     // 0.006 matches GIMP's default "Colors > Auto > White Balance".
     explicit FilterAWB(float clip_percent = 0.006f);
 
-    // Modifies input in place and returns it.
-    cv::Mat& filter(cv::Mat& input) override;
-    // In-place — output is ignored. Input is modified and returned.
-    cv::Mat& filter(cv::Mat& input, cv::Mat* output, bool preserveInput = false) override;
+    cv::Mat& filter(cv::Mat& input, bool preserveInput) override;
 
 private:
     float   m_clipPercent;
-    cv::Mat m_dst;   // used when preserveInput=true and output==nullptr
+    cv::Mat m_dst;   // used when preserveInput=true
 };

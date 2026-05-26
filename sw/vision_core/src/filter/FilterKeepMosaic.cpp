@@ -23,29 +23,21 @@ FilterKeepMosaic::FilterKeepMosaic(int output_format, cv::ColorConversionCodes b
         throw FPGAlix::ExceptionInvalidFormat("FilterKeepMosaic: unsupported format, expected CV_8UC1 or CV_8UC3");
 }
 
-cv::Mat& FilterKeepMosaic::filter(cv::Mat& input) {
-    return filter(input, nullptr);
-}
-
-cv::Mat& FilterKeepMosaic::filter(cv::Mat& input, cv::Mat* output, bool /* preserveInput */) {
+cv::Mat& FilterKeepMosaic::filter(cv::Mat& input, bool /* preserveInput */) {
     if (input.type() != CV_8UC1)
         throw FPGAlix::ExceptionInvalidFormat("FilterKeepMosaic::filter: expected CV_8UC1 input (raw Bayer mosaic)");
-
-    cv::Mat& dst = output ? *output : m_dst;
 
     switch (m_outputFormat) {
         case CV_8UC1:
             return input;
         case CV_8UC3: {
-            // Zero-initialize only on first call for the internal mat; external
-            // buffers are always zeroed since we cannot assume their state.
-            if (output != nullptr || m_dst.empty()) {
-                dst.create(input.size(), CV_8UC3);
-                dst.setTo(cv::Scalar(0, 0, 0));
+            if (m_dst.empty()) {
+                m_dst.create(input.size(), CV_8UC3);
+                m_dst.setTo(cv::Scalar(0, 0, 0));
             }
             for (int r = 0; r < input.rows; r++) {
                 const uint8_t* src     = input.ptr<uint8_t>(r);
-                cv::Vec3b*     d       = dst.ptr<cv::Vec3b>(r);
+                cv::Vec3b*     d       = m_dst.ptr<cv::Vec3b>(r);
                 // Hoist even/odd channel indices out of the inner loop:
                 // the Bayer pattern repeats every 2 columns, so only 2 values alternate.
                 int            roff    = (r & 1) * 2;
@@ -56,7 +48,7 @@ cv::Mat& FilterKeepMosaic::filter(cv::Mat& input, cv::Mat* output, bool /* prese
                     d[c + 1][ch_odd ] = src[c + 1];
                 }
             }
-            return dst;
+            return m_dst;
         }
         default:
             throw FPGAlix::ExceptionInvalidFormat("FilterKeepMosaic::filter: unsupported format");

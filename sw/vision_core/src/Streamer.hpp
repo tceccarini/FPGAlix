@@ -3,7 +3,9 @@
 #include <gst/rtsp-server/rtsp-server.h>
 #include <gst/app/gstappsrc.h>
 #include <atomic>
+#include <mutex>
 #include <thread>
+#include <vector>
 #include "FrameBuffer.hpp"
 
 namespace FPGAlix {
@@ -11,28 +13,39 @@ namespace FPGAlix {
 /* Reads frames from a FrameBuffer and streams them via RTSP using GStreamer.
    Does no processing — pure transport layer.
 
+   Valid encoding/format combinations:
+     UNCOMPRESSED + BGR8  — rtpvrawpay, BGR passed directly (no conversion)
+     MJPEG        + BGR8  — cv::imencode BGR→YCbCr, rtpjpegpay
+     H264         + BGR8  — videoconvert BGR→I420, openh264enc
+     H264         + GRAY8 — videoconvert GRAY→I420, openh264enc
+   All other combinations throw ExceptionInvalidFormat in setInputBuffer().
+
    Typical usage:
-     streamer.start();   // spawns GMainLoop thread and transmission thread
+     Streamer streamer(fps, encoding);
+     streamer.setInputBuffer(inputBuffer);  // validates format; must be called before start()
+     streamer.start();
      ...
-     streamer.stop();    // unblocks pop(), joins threads cleanly */
+     streamer.stop(); */
 class Streamer {
 public:
     enum class Encoding { UNCOMPRESSED, MJPEG, H264 };
 
-    /* buffer:   source of frames to transmit (shared with Capturer)
-       width/height: frame dimensions, must match FrameBuffer
-       fps:      stream framerate, defaults to 30
+    /* fps:      stream framerate
        encoding: compression algorithm
-       format:   OpenCV pixel type of the frames (CV_8UC1 = GRAY8, CV_8UC3 = BGR)
-
-       NOTE — UNCOMPRESSED + CV_8UC1: RFC 4175 (rtpvrawpay) does not define a
-       GRAY8 payload type. The pipeline internally converts GRAY8→RGB via
-       videoconvert before packetising (I420 is avoided because videoconvert
-       sets U/V to 0 instead of 128, producing a green tint). An intermediate
-       colorspace conversion therefore still occurs even in "uncompressed" mode. */
-    explicit Streamer(FrameBuffer &buffer, int width, int height, int fps,
-                      Encoding encoding, int format);
+       Format and dimensions are deduced from the FrameBuffer in setInputBuffer(). */
+    explicit Streamer(int fps, Encoding encoding);
     virtual ~Streamer();
+
+    /* Provides the FrameBuffer to read frames from.
+       Must be called before start(). The buffer is not owned by the Streamer. */
+    void setInputBuffer(FrameBuffer &inputBuffer);
+
+    /* Returns the CV pixel types accepted by the current encoding,
+       ordered by ascending computational cost (index 0 = least effort).
+       UNCOMPRESSED → { CV_8UC3 }
+       MJPEG        → { CV_8UC3 }
+       H264         → { CV_8UC1, CV_8UC3 }  (GRAY8 skips chroma processing) */
+    std::vector<int> getAvailableInputFormats() const;
 
     /* Starts the GMainLoop thread and the transmission thread */
     void start();
@@ -41,35 +54,26 @@ public:
     void stop();
 
 private:
-    /* Called once when the first client connects — configures appsrc caps
-       (format, resolution, framerate). Receives Streamer* via gpointer data. */
     static void onMediaConfigure(GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer data);
-
-    /* GStreamer destroy_notify — called when GStreamer is done transmitting a buffer.
-       Calls frame->clearBusy() so the pool slot can be reused by borrow(). */
-    static void onFrameRelease(gpointer data);
-
-    /* Throws ExceptionInvalidFormat if the frame mat does not match the
-       expected dimensions, pixel type, or is not contiguous in memory. */
-    void validateFrame(const Frame &frame) const;
-
-    /* Transmission thread body: blocks on pop(), wraps the frame in a GstBuffer
-       (zero copy), pushes to appsrc, exits on ExceptionQueueEmpty. */
+    static void onClientConnected(GstRTSPServer *server, GstRTSPClient *client, gpointer data);
+    static void onClientClosed(GstRTSPClient *client, gpointer data);
     void txThread();
 
-    FrameBuffer        &m_buffer;        /* shared with Capturer — not owned */
+    FrameBuffer        *m_inputBuffer{nullptr}; /* set via setInputBuffer — not owned */
     int                 m_width;
     int                 m_height;
     int                 m_fps;
     Encoding            m_encoding;
     int                 m_format;
     GstRTSPServer      *m_server{nullptr};
-    GstAppSrc          *m_appsrc{nullptr}; /* set by onMediaConfigure on first client */
+    GstAppSrc          *m_appsrc{nullptr}; /* guarded by m_appsrcMtx */
+    std::mutex          m_appsrcMtx;
+    std::atomic<int>    m_clientCount{0};
     GMainLoop          *m_loop{nullptr};
     std::atomic<bool>   m_running{false};
-    std::thread         m_loopThread;    /* runs g_main_loop_run */
-    std::thread         m_txThread;      /* runs txThread */
-    GstClockTime        m_timestamp{0};  /* monotonic PTS counter */
+    std::thread         m_loopThread;
+    std::thread         m_txThread;
+    GstClockTime        m_timestamp{0};
 };
 
 } // namespace FPGAlix

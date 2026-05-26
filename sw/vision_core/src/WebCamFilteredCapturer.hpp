@@ -10,8 +10,8 @@ namespace FPGAlix {
 class WebCamFilteredCapturer : public FilteredCapturer {
 public:
     /* device: V4L2 device path (e.g. "/dev/video0").
-       buffer: FrameBuffer to push captured frames into. */
-    WebCamFilteredCapturer(const std::string &device, FrameBuffer &buffer);
+       outputBuffer: FrameBuffer to push captured frames into. */
+    WebCamFilteredCapturer(const std::string &device, FrameBuffer &outputBuffer);
 
     /* Opens device once, requests desiredSize and desiredFps, writes the
        values actually negotiated by the driver into *outSize and *outFps,

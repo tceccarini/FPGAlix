@@ -22,12 +22,7 @@ FilterDemosaicing::FilterDemosaicing(cv::ColorConversionCodes code)
     validateBayerCode(code);
 }
 
-cv::Mat& FilterDemosaicing::filter(cv::Mat& input) {
-    return filter(input, nullptr);
-}
-
-cv::Mat& FilterDemosaicing::filter(cv::Mat& input, cv::Mat* output, bool /* preserveInput */) {
-    cv::Mat& dst = output ? *output : m_dst;
-    cv::cvtColor(input, dst, m_code);
-    return dst;
+cv::Mat& FilterDemosaicing::filter(cv::Mat& input, bool /* preserveInput */) {
+    cv::cvtColor(input, m_dst, m_code);
+    return m_dst;
 }

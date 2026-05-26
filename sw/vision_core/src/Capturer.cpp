@@ -3,8 +3,8 @@
 
 namespace FPGAlix {
 
-Capturer::Capturer(FrameBuffer &buffer)
-    : m_buffer(buffer) {
+Capturer::Capturer(FrameBuffer &outputBuffer)
+    : m_outputBuffer(outputBuffer) {
 }
 
 Capturer::~Capturer() {
@@ -34,7 +34,7 @@ void Capturer::captureThread() {
     while (m_running) {
         Frame *frame = nullptr;
         try {
-            frame = m_buffer.borrow();
+            frame = m_outputBuffer.borrow();
         }
         catch (const ExceptionPoolExhausted &) {
             rprint("Capturer: pool exhausted, skipping frame\n");
@@ -42,7 +42,7 @@ void Capturer::captureThread() {
         }
 
         if (!m_capPtr->read(raw)) {
-            m_buffer.giveBack(frame);
+            m_outputBuffer.giveBack(frame);
             rprint("Capturer: read failed, exiting capture thread\n");
             break;
         }
@@ -50,11 +50,11 @@ void Capturer::captureThread() {
         process(raw, frame->mat());
 
         try {
-            m_buffer.push(frame);
+            m_outputBuffer.push(frame);
         }
         catch (const ExceptionQueueFull &) {
             rprint("Capturer: queue full, dropping frame\n");
-            m_buffer.giveBack(frame);
+            m_outputBuffer.giveBack(frame);
         }
     }
 }

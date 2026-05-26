@@ -11,8 +11,11 @@ BUILD    := build
 BIN      := bin
 TARGET   := $(BIN)/vision_core
 
-SRCS := $(shell find $(SRC_DIR) -name '*.cpp')
-OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD)/%.o, $(SRCS))
+LIB_SRCS  := $(shell find $(SRC_DIR) -name '*.cpp')
+ROOT_SRCS := $(wildcard *.cpp)
+LIB_OBJS  := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD)/%.o, $(LIB_SRCS))
+ROOT_OBJS := $(patsubst %.cpp, $(BUILD)/%.o, $(ROOT_SRCS))
+OBJS      := $(LIB_OBJS) $(ROOT_OBJS)
 
 .PHONY: all clean
 
@@ -22,6 +25,10 @@ $(TARGET): $(OBJS) | $(BIN)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 $(BUILD)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 

@@ -17,7 +17,7 @@ namespace FPGAlix {
      capturer.stop();    // signals thread to exit, releases device */
 class Capturer {
 public:
-    explicit Capturer(FrameBuffer &buffer);
+    explicit Capturer(FrameBuffer &outputBuffer);
     virtual ~Capturer();
 
     /* Calls openDevice(), then spawns the capture thread.
@@ -42,7 +42,7 @@ protected:
 private:
     void captureThread();
 
-    FrameBuffer       &m_buffer;
+    FrameBuffer       &m_outputBuffer;
     cv::VideoCapture  *m_capPtr{nullptr}; /* points to the subclass-owned VideoCapture */
     std::atomic<bool>  m_running{false};
     std::thread        m_thread;
