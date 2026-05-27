@@ -13,6 +13,10 @@
 
 using namespace FPGAlix;
 
+static constexpr int WEBCAM_WIDTH  = 640;
+static constexpr int WEBCAM_HEIGHT = 480;
+static constexpr int WEBCAM_FPS    = 30;
+
 static volatile std::sig_atomic_t g_stop = 0;
 static void sigHandler(int) { g_stop = 1; }
 
@@ -48,12 +52,26 @@ int main() {
         return 1;
     }
 
+    int jpegQuality = 60;
+    if (encoding == Streamer::Encoding::MJPEG) {
+        std::string qualStr;
+        std::cout << "JPEG quality [1-100, default: 60]: ";
+        std::getline(std::cin, qualStr);
+        if (!qualStr.empty()) {
+            jpegQuality = std::stoi(qualStr);
+            if (jpegQuality < 1 || jpegQuality > 100) {
+                std::cerr << "Invalid quality: " << jpegQuality << "\n";
+                return 1;
+            }
+        }
+    }
+
     std::string fmtStr;
     std::cout << "Output format [bgr8/gray8, default: bgr8]: ";
     std::getline(std::cin, fmtStr);
     int format;
-    if (fmtStr.empty() || fmtStr == "bgr8") format = CV_8UC3;
-    else if (fmtStr == "gray8")             format = CV_8UC1;
+    if      (fmtStr.empty() || fmtStr == "bgr8") format = CV_8UC3;
+    else if (fmtStr == "gray8")                  format = CV_8UC1;
     else {
         std::cerr << "Unknown format: " << fmtStr << "\n";
         return 1;
@@ -75,26 +93,28 @@ int main() {
     }
 
     try {
-        cv::Size size; int fps;
+        int width, height, fps;
         std::unique_ptr<FrameBuffer>      outputBuffer;
         std::unique_ptr<FilteredCapturer> capPtr;
 
         if (isOV7670) {
-            size   = {OV7670FilteredCapturer::WIDTH, OV7670FilteredCapturer::HEIGHT};
+            width  = OV7670FilteredCapturer::WIDTH;
+            height = OV7670FilteredCapturer::HEIGHT;
             fps    = OV7670FilteredCapturer::FPS;
-            outputBuffer = std::make_unique<FrameBuffer>(size.width, size.height, format, 4);
+            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, 4);
             capPtr = std::make_unique<OV7670FilteredCapturer>(device, *outputBuffer);
+            capPtr->openDevice();
         } else {
-            WebCamFilteredCapturer::probeDevice(device, {640, 480}, 30, &size, &fps);
-            std::cout << "Negotiated: " << size.width << "x" << size.height
-                      << " @ " << fps << "fps\n";
-            outputBuffer = std::make_unique<FrameBuffer>(size.width, size.height, format, 4);
-            auto webcam = std::make_unique<WebCamFilteredCapturer>(device, *outputBuffer);
-            webcam->setDevice(size, fps);
-            capPtr = std::move(webcam);
+            width  = WEBCAM_WIDTH;
+            height = WEBCAM_HEIGHT;
+            fps    = WEBCAM_FPS;
+            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, 4);
+            capPtr = std::make_unique<WebCamFilteredCapturer>(device, *outputBuffer, fps);
+            capPtr->openDevice();
         }
 
         Streamer streamer(fps, encoding);
+        streamer.setMjpegQuality(jpegQuality);
         streamer.setInputBuffer(*outputBuffer);
         SimpleUI ui(*capPtr, format);
 

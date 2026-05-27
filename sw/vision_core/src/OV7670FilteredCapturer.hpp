@@ -22,7 +22,7 @@ public:
 
 private:
     std::string      m_device;
-    cv::VideoCapture m_cap;
+    cv::VideoCapture m_cap; /* unused in V4L2 path, returned as dummy by openDevice() */
 };
 
 } // namespace FPGAlix

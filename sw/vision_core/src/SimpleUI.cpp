@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <sys/select.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "filter/FilterAWB.hpp"
 #include "filter/FilterConversion.hpp"
@@ -124,7 +125,10 @@ SimpleUI::~SimpleUI() { stop(); }
 
 void SimpleUI::start() {
     m_stop = false;
-    m_thread = std::thread(&SimpleUI::run, this);
+    m_thread = std::thread([this] {
+        pthread_setname_np(pthread_self(), "simple-ui");
+        run();
+    });
 }
 
 void SimpleUI::stop() {

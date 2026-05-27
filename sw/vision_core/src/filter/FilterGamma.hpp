@@ -17,6 +17,6 @@ public:
     cv::Mat& filter(cv::Mat& input, bool preserveInput) override;
 
 private:
-    uint8_t  m_lut[256]; // precomputed gamma+gain mapping for all 256 input values
-    cv::Mat  m_dst;      // used when preserveInput=true
+    cv::Mat  m_lut; // precomputed gamma+gain mapping, CV_8UC1 1×256
+    cv::Mat  m_dst;
 };

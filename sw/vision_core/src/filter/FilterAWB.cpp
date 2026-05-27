@@ -8,10 +8,6 @@ cv::Mat& FilterAWB::filter(cv::Mat& input, bool preserveInput) {
     if (input.type() != CV_8UC3)
         throw FPGAlix::ExceptionInvalidFormat("FilterAWB::filter: expected CV_8UC3 input");
 
-    cv::Mat* dstPtr = preserveInput ? &m_dst : &input;
-
-    cv::Mat& dst = *dstPtr;
-
     int total    = input.rows * input.cols;
     int clip_low = static_cast<int>(total * m_clipPercent);
     int clip_hi  = total - clip_low;
@@ -41,16 +37,13 @@ cv::Mat& FilterAWB::filter(cv::Mat& input, bool preserveInput) {
             lut[ch][i] = cv::saturate_cast<uint8_t>((i - low) * scale);
     }
 
-    // Pass 2: apply LUTs, reading from input and writing to dst.
-    for (int r = 0; r < input.rows; r++) {
-        const uint8_t* src = input.ptr<uint8_t>(r);
-        uint8_t*       out = dst.ptr<uint8_t>(r);
-        for (int c = 0; c < input.cols * 3; c += 3) {
-            out[c    ] = lut[0][src[c    ]];
-            out[c + 1] = lut[1][src[c + 1]];
-            out[c + 2] = lut[2][src[c + 2]];
-        }
+    cv::Mat lut_mat(1, 256, CV_8UC3);
+    uint8_t *p = lut_mat.data;
+    for (int i = 0; i < 256; i++) {
+        p[i * 3    ] = lut[0][i];
+        p[i * 3 + 1] = lut[1][i];
+        p[i * 3 + 2] = lut[2][i];
     }
-
-    return dst;
+    cv::LUT(input, lut_mat, m_dst);
+    return m_dst;
 }

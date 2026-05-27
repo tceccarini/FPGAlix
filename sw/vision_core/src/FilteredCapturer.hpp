@@ -24,7 +24,8 @@ namespace FPGAlix {
    m_pending into m_active and runs the filter chain — with no lock held
    during actual filtering.
 
-   openDevice() remains pure-virtual: a concrete subclass must implement it. */
+   Subclasses may override openDevice() to set up the capture source; if not
+   overridden, the V4L2 overload in Capturer must be called before start(). */
 class FilteredCapturer : public Capturer {
 public:
     explicit FilteredCapturer(FrameBuffer &outputBuffer);

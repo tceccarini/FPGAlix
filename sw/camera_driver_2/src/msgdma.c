@@ -167,7 +167,16 @@ void FPGAlix_dma_release(FPGAlix_dma_chan_t *dma)
 	if (!dma->chan)
 		return;
 	atomic_set(&dma->stopping, 1);
-	dmaengine_terminate_sync(dma->chan);
+	/* Do NOT call dmaengine_terminate_sync: the mSGDMA loads the current
+	 * descriptor into the DMA engine before STOP_DISPATCHER takes effect.
+	 * The HW fires a completion interrupt after terminate_sync returns and
+	 * msgdma_tasklet hits BUG_ON in dma_cookie_complete on the descriptor
+	 * that terminate_all already invalidated.  Let in-flight transfers
+	 * drain naturally instead — stopping=1 prevents re-submission and
+	 * ensures work items decrement inflight without calling back. */
+	wait_event(dma->idle_wait, atomic_read(&dma->inflight) == 0);
+	drain_workqueue(dma->wq);
+	atomic_inc(&dma->chan_seq);
 	destroy_workqueue(dma->wq);
 	dma->wq = NULL;
 	dma_release_channel(dma->chan);

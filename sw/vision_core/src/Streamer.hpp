@@ -53,6 +53,10 @@ public:
     /* Signals FrameBuffer to unblock pop(), stops both threads and joins them */
     void stop();
 
+    /* Sets the JPEG quality for MJPEG encoding [1-100]. Default: 95.
+       Must be called before start(). Has no effect for other encodings. */
+    void setMjpegQuality(int quality);
+
 private:
     static void onMediaConfigure(GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer data);
     static void onClientConnected(GstRTSPServer *server, GstRTSPClient *client, gpointer data);
@@ -65,6 +69,7 @@ private:
     int                 m_fps;
     Encoding            m_encoding;
     int                 m_format;
+    int                 m_jpegQuality{60}; /* default quality for MJPEG encoding */
     GstRTSPServer      *m_server{nullptr};
     GstAppSrc          *m_appsrc{nullptr}; /* guarded by m_appsrcMtx */
     std::mutex          m_appsrcMtx;

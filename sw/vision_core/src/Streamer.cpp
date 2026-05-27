@@ -3,6 +3,7 @@
 #include <opencv2/opencv.hpp>
 #include <algorithm>
 #include <vector>
+#include <pthread.h>
 
 namespace FPGAlix {
 
@@ -131,7 +132,7 @@ void Streamer::txThread() {
         if (m_encoding == Encoding::MJPEG) {
             /* MJPEG always encodes into a new buffer — copy is unavoidable */
             auto *outBuf = new std::vector<uchar>();
-            cv::imencode(".jpg", frame->mat(), *outBuf);
+            cv::imencode(".jpg", frame->mat(), *outBuf, {cv::IMWRITE_JPEG_QUALITY, m_jpegQuality});
             m_inputBuffer->giveBack(frame);
             buf = gst_buffer_new_wrapped_full(
                 GST_MEMORY_FLAG_READONLY,
@@ -162,6 +163,10 @@ void Streamer::txThread() {
 
         gst_app_src_push_buffer(appsrc, buf);
     }
+}
+
+void Streamer::setMjpegQuality(int quality) {
+    m_jpegQuality = quality;
 }
 
 void Streamer::start() {
@@ -200,8 +205,14 @@ void Streamer::start() {
 
     gst_rtsp_server_attach(m_server, NULL);
 
-    m_loopThread = std::thread([this] { g_main_loop_run(m_loop); });
-    m_txThread   = std::thread([this] { txThread(); });
+    m_loopThread = std::thread([this] {
+        pthread_setname_np(pthread_self(), "gst-loop");
+        g_main_loop_run(m_loop);
+    });
+    m_txThread = std::thread([this] {
+        pthread_setname_np(pthread_self(), "tx");
+        txThread();
+    });
 }
 
 void Streamer::stop() {
