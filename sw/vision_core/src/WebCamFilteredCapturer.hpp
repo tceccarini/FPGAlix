@@ -12,11 +12,13 @@ public:
     WebCamFilteredCapturer(const std::string &device, FrameBuffer &outputBuffer, int fps);
 
     cv::VideoCapture& openDevice() override;
+    void setInputBufferLength(int n = 4);
     cv::Mat& preFilter(cv::Mat &mat) override;
 
 private:
     std::string      m_device;
     int              m_fps;
+    int              m_inputBufferLength{4};
     FrameBuffer     &m_outputBuffer;
     cv::VideoCapture m_cap; /* unused in V4L2 path, returned as dummy by openDevice() */
     cv::Mat          m_bgrFrame;

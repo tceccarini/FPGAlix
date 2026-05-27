@@ -6,9 +6,11 @@ namespace FPGAlix {
 WebCamFilteredCapturer::WebCamFilteredCapturer(const std::string &device, FrameBuffer &outputBuffer, int fps)
     : FilteredCapturer(outputBuffer), m_device(device), m_fps(fps), m_outputBuffer(outputBuffer) {}
 
+void WebCamFilteredCapturer::setInputBufferLength(int n) { m_inputBufferLength = n; }
+
 cv::VideoCapture& WebCamFilteredCapturer::openDevice() {
     cv::Size res = m_outputBuffer.getFrame(0).mat().size();
-    Capturer::openDevice(m_device, res.width, res.height, m_fps, V4L2_PIX_FMT_YUYV);
+    Capturer::openDevice(m_device, res.width, res.height, m_fps, V4L2_PIX_FMT_YUYV, m_inputBufferLength);
     return m_cap;
 }
 

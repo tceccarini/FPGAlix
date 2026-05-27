@@ -92,6 +92,16 @@ int main() {
         }
     }
 
+    std::string inBufStr;
+    std::cout << "Input buffer size [default: 4]: ";
+    std::getline(std::cin, inBufStr);
+    int inputBufferSize = inBufStr.empty() ? 4 : std::stoi(inBufStr);
+
+    std::string outBufStr;
+    std::cout << "Output buffer size [default: 4]: ";
+    std::getline(std::cin, outBufStr);
+    int outputBufferSize = outBufStr.empty() ? 4 : std::stoi(outBufStr);
+
     try {
         int width, height, fps;
         std::unique_ptr<FrameBuffer>      outputBuffer;
@@ -101,16 +111,20 @@ int main() {
             width  = OV7670FilteredCapturer::WIDTH;
             height = OV7670FilteredCapturer::HEIGHT;
             fps    = OV7670FilteredCapturer::FPS;
-            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, 4);
-            capPtr = std::make_unique<OV7670FilteredCapturer>(device, *outputBuffer);
-            capPtr->openDevice();
+            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, outputBufferSize);
+            auto ov = std::make_unique<OV7670FilteredCapturer>(device, *outputBuffer);
+            ov->setInputBufferLength(inputBufferSize);
+            ov->openDevice();
+            capPtr = std::move(ov);
         } else {
             width  = WEBCAM_WIDTH;
             height = WEBCAM_HEIGHT;
             fps    = WEBCAM_FPS;
-            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, 4);
-            capPtr = std::make_unique<WebCamFilteredCapturer>(device, *outputBuffer, fps);
-            capPtr->openDevice();
+            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, outputBufferSize);
+            auto wc = std::make_unique<WebCamFilteredCapturer>(device, *outputBuffer, fps);
+            wc->setInputBufferLength(inputBufferSize);
+            wc->openDevice();
+            capPtr = std::move(wc);
         }
 
         Streamer streamer(fps, encoding);

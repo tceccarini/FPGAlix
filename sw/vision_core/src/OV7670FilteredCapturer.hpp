@@ -19,9 +19,11 @@ public:
     OV7670FilteredCapturer(const std::string &device, FrameBuffer &outputBuffer);
 
     cv::VideoCapture& openDevice() override;
+    void setInputBufferLength(int n = 4);
 
 private:
     std::string      m_device;
+    int              m_inputBufferLength{4};
     cv::VideoCapture m_cap; /* unused in V4L2 path, returned as dummy by openDevice() */
 };
 
