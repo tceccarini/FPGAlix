@@ -12,6 +12,11 @@ FilterGamma::FilterGamma(float gamma, float gain) {
 cv::Mat& FilterGamma::filter(cv::Mat& input, bool preserveInput) {
     if (input.depth() != CV_8U)
         throw FPGAlix::ExceptionInvalidFormat("FilterGamma::filter: expected CV_8U depth");
-    cv::LUT(input, m_lut, m_dst);
+    constexpr int kStrip = 32;
+    m_dst.create(input.size(), input.type());
+    for (int y = 0; y < input.rows; y += kStrip) {
+        int h = std::min(kStrip, input.rows - y);
+        cv::LUT(input.rowRange(y, y + h), m_lut, m_dst.rowRange(y, y + h));
+    }
     return m_dst;
 }

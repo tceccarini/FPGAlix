@@ -5,19 +5,28 @@
 FilterConversion::FilterConversion(int outputType) : m_outputType(outputType) {}
 
 void FilterConversion::filter(cv::Mat& input, cv::Mat* output) {
-    if (input.type() == CV_8UC3 && m_outputType == CV_8UC1)
-        cv::cvtColor(input, *output, cv::COLOR_BGR2GRAY);
-    else if (input.type() == CV_8UC1 && m_outputType == CV_8UC3)
-        cv::cvtColor(input, *output, cv::COLOR_GRAY2BGR);
-    else if (input.type() == m_outputType)
+    constexpr int kStrip = 32;
+    if (input.type() == CV_8UC3 && m_outputType == CV_8UC1) {
+        for (int y = 0; y < input.rows; y += kStrip) {
+            int h = std::min(kStrip, input.rows - y);
+            cv::cvtColor(input.rowRange(y, y + h), output->rowRange(y, y + h), cv::COLOR_BGR2GRAY);
+        }
+    } else if (input.type() == CV_8UC1 && m_outputType == CV_8UC3) {
+        for (int y = 0; y < input.rows; y += kStrip) {
+            int h = std::min(kStrip, input.rows - y);
+            cv::cvtColor(input.rowRange(y, y + h), output->rowRange(y, y + h), cv::COLOR_GRAY2BGR);
+        }
+    } else if (input.type() == m_outputType) {
         input.copyTo(*output);
-    else
+    } else {
         throw FPGAlix::ExceptionInvalidFormat("FilterConversion: unsupported type combination");
+    }
 }
 
 cv::Mat& FilterConversion::filter(cv::Mat& input, bool preserveInput) {
     if (input.type() == m_outputType && !preserveInput)
         return input;
+    m_dst.create(input.rows, input.cols, m_outputType);
     filter(input, &m_dst);
     return m_dst;
 }
