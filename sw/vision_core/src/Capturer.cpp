@@ -41,6 +41,25 @@ void Capturer::stop() {
         m_processThread.join();
 
     if (m_v4l2DeviceDescriptor >= 0) {
+        /* Drain buffers still owned by the driver before STREAMOFF.
+           If we call STREAMOFF while a DMA transfer is in flight, the mSGDMA
+           driver's dmaengine_terminate_sync races with the HW completion
+           interrupt and hits BUG_ON(cookie < 1) in dma_cookie_complete. */
+        {
+            v4l2_buffer buf{};
+            buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_MMAP;
+            for (size_t i = 0; i < m_inputBuffer.size(); ++i) {
+                fd_set fds;
+                FD_ZERO(&fds);
+                FD_SET(m_v4l2DeviceDescriptor, &fds);
+                timeval tv{0, 100000};
+                if (select(m_v4l2DeviceDescriptor + 1, &fds, nullptr, nullptr, &tv) <= 0)
+                    break;
+                ioctl(m_v4l2DeviceDescriptor, VIDIOC_DQBUF, &buf);
+            }
+        }
+
         v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         ioctl(m_v4l2DeviceDescriptor, VIDIOC_STREAMOFF, &type);
 
