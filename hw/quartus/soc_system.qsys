@@ -609,7 +609,7 @@
   <parameter name="ENABLE_EXPLICIT_MAXCHANNEL" value="false" />
   <parameter name="ERROR_WIDTH" value="0" />
   <parameter name="EXPLICIT_MAXCHANNEL" value="0" />
-  <parameter name="FIFO_DEPTH" value="256" />
+  <parameter name="FIFO_DEPTH" value="4096" />
   <parameter name="RD_SYNC_DEPTH" value="3" />
   <parameter name="SYMBOLS_PER_BEAT" value="1" />
   <parameter name="USE_IN_FILL_LEVEL" value="0" />
@@ -1345,7 +1345,7 @@
   <parameter name="ERROR_WIDTH" value="8" />
   <parameter name="EXPOSE_ST_PORT" value="0" />
   <parameter name="FIX_ADDRESS_WIDTH" value="32" />
-  <parameter name="MAX_BURST_COUNT" value="128" />
+  <parameter name="MAX_BURST_COUNT" value="512" />
   <parameter name="MAX_BYTE" value="4194304" />
   <parameter name="MAX_STRIDE" value="1" />
   <parameter name="MODE" value="2" />
