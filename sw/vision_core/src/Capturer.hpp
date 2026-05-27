@@ -49,6 +49,10 @@ public:
     void openDevice(const std::string &device, int width, int height,
                     int fps, uint32_t pixelFormat, int numBuffers = 4);
 
+    /* Skip n frames between each processed frame (0 = process all).
+       E.g. n=1 → process 1, skip 1, ... → effective fps halved. */
+    void setDecimation(int n = 0);
+
 protected:
     bool isRunning() const { return m_running.load(); }
 
@@ -66,6 +70,8 @@ private:
     uint32_t                 m_capturePixelFormat{0};
     std::atomic<bool>        m_running{false};
     std::thread              m_processThread;
+    int                      m_decimation{0};
+    int                      m_skipCount{0};
 };
 
 } // namespace FPGAlix

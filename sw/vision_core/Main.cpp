@@ -102,6 +102,11 @@ int main() {
     std::getline(std::cin, outBufStr);
     int outputBufferSize = outBufStr.empty() ? 4 : std::stoi(outBufStr);
 
+    std::string decimStr;
+    std::cout << "Frame decimation [0=off, 1=half fps, 2=third fps, default: 0]: ";
+    std::getline(std::cin, decimStr);
+    int decimation = decimStr.empty() ? 0 : std::stoi(decimStr);
+
     try {
         int width, height, fps;
         std::unique_ptr<FrameBuffer>      outputBuffer;
@@ -115,6 +120,7 @@ int main() {
             auto ov = std::make_unique<OV7670FilteredCapturer>(device, *outputBuffer);
             ov->setInputBufferLength(inputBufferSize);
             ov->openDevice();
+            ov->setDecimation(decimation);
             capPtr = std::move(ov);
         } else {
             width  = WEBCAM_WIDTH;
@@ -124,10 +130,11 @@ int main() {
             auto wc = std::make_unique<WebCamFilteredCapturer>(device, *outputBuffer, fps);
             wc->setInputBufferLength(inputBufferSize);
             wc->openDevice();
+            wc->setDecimation(decimation);
             capPtr = std::move(wc);
         }
 
-        Streamer streamer(fps, encoding);
+        Streamer streamer(fps / (decimation + 1), encoding);
         streamer.setMjpegQuality(jpegQuality);
         streamer.setInputBuffer(*outputBuffer);
         SimpleUI ui(*capPtr, format);

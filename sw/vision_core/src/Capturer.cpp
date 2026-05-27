@@ -165,6 +165,8 @@ cv::Mat& Capturer::preFilter(cv::Mat &mat) {
     return mat;
 }
 
+void Capturer::setDecimation(int n) { m_decimation = n; }
+
 static cv::Mat wrapBuffer(void *ptr, int w, int h, uint32_t pixfmt, uint32_t bytesused) {
     switch (pixfmt) {
     case V4L2_PIX_FMT_YUYV:  return cv::Mat(h, w, CV_8UC2, ptr);
@@ -203,6 +205,13 @@ void Capturer::captureThread() {
                 rprint("Capturer: VIDIOC_DQBUF failed\n");
                 break;
             }
+
+            if (m_skipCount < m_decimation) {
+                ++m_skipCount;
+                ioctl(m_v4l2DeviceDescriptor, VIDIOC_QBUF, &buf);
+                continue;
+            }
+            m_skipCount = 0;
 
             cv::Mat raw = wrapBuffer(m_inputBuffer[buf.index].start,
                                      m_captureWidth, m_captureHeight,
