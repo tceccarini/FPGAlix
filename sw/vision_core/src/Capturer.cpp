@@ -161,10 +161,6 @@ void Capturer::openDevice(const std::string &device, int width, int height,
     }
 }
 
-cv::Mat& Capturer::preFilter(cv::Mat &mat) {
-    return mat;
-}
-
 void Capturer::setDecimation(int n) { m_decimation = n; }
 
 static cv::Mat wrapBuffer(void *ptr, int w, int h, uint32_t pixfmt, uint32_t bytesused) {
@@ -213,10 +209,6 @@ void Capturer::captureThread() {
             }
             m_skipCount = 0;
 
-            cv::Mat raw = wrapBuffer(m_inputBuffer[buf.index].start,
-                                     m_captureWidth, m_captureHeight,
-                                     m_capturePixelFormat, buf.bytesused);
-
             Frame *frame = nullptr;
             try {
                 frame = m_outputBuffer.borrow();
@@ -226,8 +218,9 @@ void Capturer::captureThread() {
                 continue;
             }
 
-            cv::Mat &filtered = preFilter(raw);
-            process(filtered, frame->mat());
+            wrapBuffer(m_inputBuffer[buf.index].start,
+                       m_captureWidth, m_captureHeight,
+                       m_capturePixelFormat, buf.bytesused).copyTo(frame->mat());
 
             try {
                 m_outputBuffer.push(frame);
@@ -236,11 +229,10 @@ void Capturer::captureThread() {
                 m_outputBuffer.giveBack(frame);
             }
 
-            // Return buffer to the driver only after process() has finished reading it
+            // Return buffer to the driver only after copyTo() has finished reading it
             ioctl(m_v4l2DeviceDescriptor, VIDIOC_QBUF, &buf);
         }
     } else {
-        cv::Mat raw;
         while (m_running) {
             Frame *frame = nullptr;
             try {
@@ -250,14 +242,11 @@ void Capturer::captureThread() {
                 continue;
             }
 
-            if (!m_capPtr->read(raw)) {
+            if (!m_capPtr->read(frame->mat())) {
                 m_outputBuffer.giveBack(frame);
                 rprint("Capturer: read failed, exiting capture thread\n");
                 break;
             }
-
-            cv::Mat &filtered = preFilter(raw);
-            process(filtered, frame->mat());
 
             try {
                 m_outputBuffer.push(frame);

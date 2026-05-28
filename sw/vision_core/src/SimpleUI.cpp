@@ -118,7 +118,7 @@ static std::unique_ptr<Filter> parseFilter(const std::string& token) {
 
 // --- SimpleUI ----------------------------------------------------------------
 
-SimpleUI::SimpleUI(FilteredCapturer& capturer, int outputFormat)
+SimpleUI::SimpleUI(Processor& capturer, int outputFormat)
     : m_capturer(capturer), m_outputFormat(outputFormat) {}
 
 SimpleUI::~SimpleUI() { stop(); }
@@ -158,8 +158,6 @@ void SimpleUI::redraw() {
             std::cout << "  [" << i << "] " << m_applied[i].first
                       << "  (id=" << m_applied[i].second << ")\n";
     }
-    std::cout << "  [fixed] → " << (m_outputFormat == CV_8UC1 ? "gray8" : "bgr8") << "\n";
-
     if (!m_lastStatus.empty()) {
         std::cout << "\n" << m_lastStatus << "\n";
         m_lastStatus.clear();

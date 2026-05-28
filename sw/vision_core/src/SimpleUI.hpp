@@ -5,7 +5,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
-#include "FilteredCapturer.hpp"
+#include "Processor.hpp"
 
 namespace FPGAlix {
 
@@ -14,7 +14,7 @@ namespace FPGAlix {
 // space-separated filter sequence on stdin to replace the pipeline atomically.
 class SimpleUI {
 public:
-    explicit SimpleUI(FilteredCapturer& capturer, int outputFormat);
+    explicit SimpleUI(Processor& capturer, int outputFormat);
     ~SimpleUI();
 
     void start();
@@ -26,7 +26,7 @@ private:
     void applySequence(const std::string& line);
     void clearPipeline();
 
-    FilteredCapturer&                             m_capturer;
+    Processor&                             m_capturer;
     int                                           m_outputFormat;
     std::atomic<bool>                             m_stop{false};
     std::thread                                   m_thread;

@@ -1,4 +1,5 @@
 #pragma once
+#include "ExceptionNotImplemented.hpp"
 #include "ExceptionPoolExhausted.hpp"
 #include "ExceptionQueueFull.hpp"
 #include "ExceptionQueueEmpty.hpp"

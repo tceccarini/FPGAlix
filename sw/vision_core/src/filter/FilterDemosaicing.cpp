@@ -23,23 +23,9 @@ FilterDemosaicing::FilterDemosaicing(cv::ColorConversionCodes code)
 }
 
 cv::Mat& FilterDemosaicing::filter(cv::Mat& input, bool /* preserveInput */) {
-    // Strip processing with 2-row overlap so each strip has correct neighbor pixels
-    // at its boundaries (bilinear needs 1, VNG needs 2). kStrip=32 (even) keeps
-    // Bayer phase aligned: y is always even, so y_ext = y-2 is also always even.
-    constexpr int kStrip  = 32;
-    constexpr int kBorder = 2;
-
     bool toGray = (m_code == cv::COLOR_BayerBG2GRAY || m_code == cv::COLOR_BayerGB2GRAY ||
                    m_code == cv::COLOR_BayerRG2GRAY || m_code == cv::COLOR_BayerGR2GRAY);
     m_dst.create(input.size(), toGray ? CV_8UC1 : CV_8UC3);
-
-    for (int y = 0; y < input.rows; y += kStrip) {
-        int h      = std::min(kStrip, input.rows - y);
-        int y_ext  = std::max(0, y - kBorder);
-        int h_ext  = std::min(input.rows, y + h + kBorder) - y_ext;
-        cv::Mat strip_out;
-        cv::cvtColor(input.rowRange(y_ext, y_ext + h_ext), strip_out, m_code);
-        strip_out.rowRange(y - y_ext, y - y_ext + h).copyTo(m_dst.rowRange(y, y + h));
-    }
+    cv::cvtColor(input, m_dst, m_code);
     return m_dst;
 }

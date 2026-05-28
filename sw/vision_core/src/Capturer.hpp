@@ -11,9 +11,7 @@
 
 namespace FPGAlix {
 
-/* Abstract base class for frame capture. Subclasses must implement openDevice()
-   and may override process() if the raw frame needs conversion before pushing
-   to the FrameBuffer.
+/* Base class for frame capture.
 
    Typical usage:
      capturer.start();   // calls openDevice(), spawns capture thread
@@ -30,14 +28,6 @@ public:
 
     /* Signals the capture thread to stop, joins it, releases the device. */
     void stop();
-
-    /* Called before process() to adapt the raw input frame (e.g. resize, color convert).
-       Default: returns mat unchanged. */
-    virtual cv::Mat& preFilter(cv::Mat &mat);
-
-    /* Applies filters to each adapted frame. mat_in is the output of preFilter().
-       mat_out: pre-allocated pool frame to write the result into. */
-    virtual void process(cv::Mat &mat_in, cv::Mat &mat_out) = 0;
 
     /* Opens and configures the capture source. Must be called before start().
        Subclasses override this to set up their specific device. */

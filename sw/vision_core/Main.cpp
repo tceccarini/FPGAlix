@@ -5,10 +5,12 @@
 #include <string>
 #include <unistd.h>
 #include "FrameBuffer.hpp"
-#include "WebCamFilteredCapturer.hpp"
-#include "OV7670FilteredCapturer.hpp"
+#include "OV7670Capturer.hpp"
+#include "WebCamCapturer.hpp"
+#include "Processor.hpp"
 #include "Streamer.hpp"
 #include "SimpleUI.hpp"
+#include "filter/FilterConversion.hpp"
 #include "exception/Exceptions.hpp"
 
 using namespace FPGAlix;
@@ -84,13 +86,17 @@ int main() {
             const char *adjName = (adjusted == CV_8UC1) ? "gray8" : "bgr8";
             const char *reqName = (format   == CV_8UC1) ? "gray8" : "bgr8";
             std::cout << "Note: " << reqName << " not available with this encoding — "
-                      << "buffer allocated as " << adjName
-                      << "; the output filter will convert.\n"
+                      << "buffer allocated as " << adjName << ".\n"
                       << "Press Enter to continue...";
             { std::string dummy; std::getline(std::cin, dummy); }
             format = adjusted;
         }
     }
+
+    std::string v4l2BufStr;
+    std::cout << "V4L2 buffer count [default: 4]: ";
+    std::getline(std::cin, v4l2BufStr);
+    int v4l2Buffers = v4l2BufStr.empty() ? 4 : std::stoi(v4l2BufStr);
 
     std::string inBufStr;
     std::cout << "Input buffer size [default: 4]: ";
@@ -108,40 +114,56 @@ int main() {
     int decimation = decimStr.empty() ? 0 : std::stoi(decimStr);
 
     try {
-        int width, height, fps;
-        std::unique_ptr<FrameBuffer>      outputBuffer;
-        std::unique_ptr<FilteredCapturer> capPtr;
+        int width, height, fps, inputFormat;
 
         if (isOV7670) {
-            width  = OV7670FilteredCapturer::WIDTH;
-            height = OV7670FilteredCapturer::HEIGHT;
-            fps    = OV7670FilteredCapturer::FPS;
-            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, outputBufferSize);
-            auto ov = std::make_unique<OV7670FilteredCapturer>(device, *outputBuffer);
-            ov->setInputBufferLength(inputBufferSize);
+            width     = OV7670Capturer::WIDTH;
+            height    = OV7670Capturer::HEIGHT;
+            fps       = OV7670Capturer::FPS;
+            inputFormat = CV_8UC1;   // raw Bayer SRGGB8
+        } else {
+            width     = WEBCAM_WIDTH;
+            height    = WEBCAM_HEIGHT;
+            fps       = WEBCAM_FPS;
+            inputFormat = CV_8UC2;   // YUYV
+        }
+
+        auto inputBuffer  = std::make_unique<FrameBuffer>(width, height, inputFormat, inputBufferSize);
+        auto outputBuffer = std::make_unique<FrameBuffer>(width, height, format, outputBufferSize);
+
+        std::unique_ptr<Capturer> capPtr;
+        if (isOV7670) {
+            auto ov = std::make_unique<OV7670Capturer>(device, *inputBuffer);
+            ov->setInputBufferLength(v4l2Buffers);
             ov->openDevice();
             ov->setDecimation(decimation);
             capPtr = std::move(ov);
         } else {
-            width  = WEBCAM_WIDTH;
-            height = WEBCAM_HEIGHT;
-            fps    = WEBCAM_FPS;
-            outputBuffer = std::make_unique<FrameBuffer>(width, height, format, outputBufferSize);
-            auto wc = std::make_unique<WebCamFilteredCapturer>(device, *outputBuffer, fps);
-            wc->setInputBufferLength(inputBufferSize);
+            auto wc = std::make_unique<WebCamCapturer>(device, *inputBuffer, fps);
+            wc->setInputBufferLength(v4l2Buffers);
             wc->openDevice();
             wc->setDecimation(decimation);
             capPtr = std::move(wc);
         }
 
+        Processor processor(*inputBuffer, *outputBuffer);
+        if (!isOV7670)
+            processor.setPreFilter(std::make_unique<FilterConversion>(CV_8UC3)); // YUYV→BGR
+        processor.setPostFilter(std::make_unique<FilterConversion>(format));
+
         Streamer streamer(fps / (decimation + 1), encoding);
         streamer.setMjpegQuality(jpegQuality);
         streamer.setInputBuffer(*outputBuffer);
-        SimpleUI ui(*capPtr, format);
+        SimpleUI ui(processor, format);
 
-        capPtr->commit();
+        if (!isOV7670)
+            std::cout << "Note: pre-filter YUYV→BGR active.\n";
+        else
+            std::cout << "Warning: OV7670 raw Bayer — add demosaicing via UI.\n";
+        std::cout << "Note: post-filter → " << (format == CV_8UC1 ? "gray8" : "bgr8") << " active.\n";
 
         capPtr->start();
+        processor.start();
         streamer.start();
         ui.start();
         std::cout << "Streaming at rtsp://0.0.0.0:8554/stream — Ctrl+C to stop\n";
@@ -151,6 +173,7 @@ int main() {
 
         ui.stop();
         streamer.stop();
+        processor.stop();
         capPtr->stop();
     }
     catch (const ExceptionQueueEmpty &) {

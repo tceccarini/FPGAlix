@@ -5,8 +5,9 @@
 
 // Converts a frame to a fixed output type (CV_8UC1 / CV_8UC3).
 // The conversion code is chosen automatically from the input type at filter time:
-//   CV_8UC3 → CV_8UC1 : BGR2GRAY
 //   CV_8UC1 → CV_8UC3 : GRAY2BGR
+//   CV_8UC2 → CV_8UC3 : YUV2BGR_YUYV
+//   CV_8UC3 → CV_8UC1 : BGR2GRAY
 //   same type          : copy (or no-op mid-pipeline)
 class FilterConversion : public Filter {
 public:
@@ -17,7 +18,7 @@ public:
     // Writes the result directly into *output — intended for the last filter
     // in a pipeline writing into a pre-allocated buffer (e.g. FrameBuffer frame).
     // Type compatibility is the caller's responsibility.
-    void filter(cv::Mat& input, cv::Mat* output);
+    void filter(cv::Mat& input, cv::Mat* output) override;
 
 private:
     int     m_outputType;

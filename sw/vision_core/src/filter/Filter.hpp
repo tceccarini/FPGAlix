@@ -23,6 +23,10 @@ public:
     // Returns a reference to the result — either input itself or an internal mat.
     virtual cv::Mat& filter(cv::Mat& input, bool preserveInput) = 0;
 
+    // Applies the filter writing the result directly into *output.
+    // Default throws ExceptionNotImplemented; override for direct-write support.
+    virtual void filter(cv::Mat& input, cv::Mat* output);
+
 protected:
     // Each construction atomically claims the next available ID from the
     // shared counter, ensuring uniqueness even when filters are created
