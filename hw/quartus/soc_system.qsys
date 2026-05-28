@@ -617,7 +617,7 @@
   <parameter name="ENABLE_EXPLICIT_MAXCHANNEL" value="false" />
   <parameter name="ERROR_WIDTH" value="0" />
   <parameter name="EXPLICIT_MAXCHANNEL" value="0" />
-  <parameter name="FIFO_DEPTH" value="32" />
+  <parameter name="FIFO_DEPTH" value="65536" />
   <parameter name="RD_SYNC_DEPTH" value="3" />
   <parameter name="SYMBOLS_PER_BEAT" value="1" />
   <parameter name="USE_IN_FILL_LEVEL" value="0" />
@@ -823,7 +823,7 @@
   <parameter name="F2SCLK_SDRAMCLK_FREQ" value="0" />
   <parameter name="F2SCLK_WARMRST_Enable" value="true" />
   <parameter name="F2SDRAM_Type">Avalon-MM Bidirectional,Avalon-MM Write-Only</parameter>
-  <parameter name="F2SDRAM_Width" value="128,64" />
+  <parameter name="F2SDRAM_Width" value="128,128" />
   <parameter name="F2SINTERRUPT_Enable" value="true" />
   <parameter name="F2S_Width" value="2" />
   <parameter name="FIX_READ_LATENCY" value="8" />
@@ -1346,7 +1346,7 @@
   <parameter name="CHANNEL_ENABLE" value="0" />
   <parameter name="CHANNEL_WIDTH" value="8" />
   <parameter name="DATA_FIFO_DEPTH" value="4096" />
-  <parameter name="DATA_WIDTH" value="64" />
+  <parameter name="DATA_WIDTH" value="128" />
   <parameter name="DESCRIPTOR_FIFO_DEPTH" value="256" />
   <parameter name="ENHANCED_FEATURES" value="1" />
   <parameter name="ERROR_ENABLE" value="0" />
@@ -1432,8 +1432,8 @@
   <parameter name="ENABLE_EXPLICIT_MAXCHANNEL" value="false" />
   <parameter name="ERROR_WIDTH" value="0" />
   <parameter name="EXPLICIT_MAXCHANNEL" value="0" />
-  <parameter name="FIFO_DEPTH" value="32768" />
-  <parameter name="SYMBOLS_PER_BEAT" value="8" />
+  <parameter name="FIFO_DEPTH" value="8192" />
+  <parameter name="SYMBOLS_PER_BEAT" value="16" />
   <parameter name="USE_ALMOST_EMPTY_IF" value="0" />
   <parameter name="USE_ALMOST_FULL_IF" value="0" />
   <parameter name="USE_FILL_LEVEL" value="0" />
@@ -1461,7 +1461,7 @@
   <parameter name="inUseReady" value="1" />
   <parameter name="inUseValid" value="1" />
   <parameter name="outChannelWidth" value="0" />
-  <parameter name="outDataWidth" value="64" />
+  <parameter name="outDataWidth" value="128" />
   <parameter name="outErrorDescriptor" value="" />
   <parameter name="outErrorWidth" value="0" />
   <parameter name="outMaxChannel" value="0" />

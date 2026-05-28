@@ -33,6 +33,6 @@
 
 /* ---- DMA --------------------------------------------------------------- */
 /* Bus width must match the mSGDMA data width set in the FPGA Qsys design */
-#define FPGALIX_DMA_BUS_WIDTH   DMA_SLAVE_BUSWIDTH_8_BYTES
+#define FPGALIX_DMA_BUS_WIDTH   DMA_SLAVE_BUSWIDTH_16_BYTES
 
 #endif /* FPGALIX_CONFIG_H */
