@@ -171,17 +171,7 @@ architecture rtl of FPGAlix is
     signal cold_cnt            		: integer range 0 to 6;
     signal warm_cnt            		: integer range 0 to 2;
     signal debug_cnt           		: integer range 0 to 32;
-    signal clk_24mhz                : std_logic; -- PLL24 TBD
-    signal pll_locked               : std_logic; -- PLL24 TBD
 
-    component PLL24 is -- PLL24 TBD
-        port ( -- PLL24 TBD
-            refclk   : in  std_logic; -- PLL24 TBD
-            rst      : in  std_logic; -- PLL24 TBD
-            outclk_0 : out std_logic; -- PLL24 TBD
-            locked   : out std_logic  -- PLL24 TBD
-        ); -- PLL24 TBD
-    end component PLL24; -- PLL24 TBD
 begin
 	soc_system_inst : entity soc_system.soc_system
 		port map(
@@ -285,15 +275,6 @@ begin
 			ov7670_data_if_cam_data                    => ov7670_data_if_data
 		);
 
-    pll24_inst : component PLL24 -- PLL24 TBD
-        port map ( -- PLL24 TBD
-            refclk   => CLOCK_50, -- PLL24 TBD
-            rst      => '0', -- PLL24 TBD
-            outclk_0 => clk_24mhz, -- PLL24 TBD
-            locked   => pll_locked -- PLL24 TBD
-        ); -- PLL24 TBD
-
-    GPIO_0(35) <= clk_24mhz; -- PLL24 TBD
 
     -- I2C open-drain (active low drive)
     GPIO_0(27) <= '0' when ov7670_ctrl_if_sda_oe = '1' else 'Z';
