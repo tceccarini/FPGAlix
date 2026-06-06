@@ -62,6 +62,11 @@ w 0x72 0x11       # SCALING_DCWCTR
 w 0x73 0xF0       # SCALING_PCLK_DIV
 w 0xA2 0x02       # SCALING_PCLK_DELAY
 
+# Horizontal window (Avoid black line issues with default values. Using Linux kernel reference values for VGA)
+w 0x17 0x13       # HSTART: horizontal window start [10:3]
+w 0x18 0x01       # HSTOP:  horizontal window stop  [10:3]
+w 0x32 0xB6       # HREF:   PCLK edge offset + HSTOP[2:0] + HSTART[2:0]
+
 # Clock: PLL x4, prescaler /2 -> 30fps
 w 0x6B 0x4A       # DBLV:  PLL x4 + internal regulator
 w 0x11 0x01       # CLKRC: divider 2
@@ -92,6 +97,9 @@ chk 0x71 0x35       SCALING_YSC
 chk 0x72 0x11       SCALING_DCWCTR
 chk 0x73 0xF0       SCALING_PCLK_DIV
 chk 0xA2 0x02       SCALING_PCLK_DELAY
+chk 0x17 0x13       HSTART
+chk 0x18 0x01       HSTOP
+chk 0x32 0xB6       HREF
 chk 0x6B 0x4A       DBLV
 chk 0x11 0x01       CLKRC
 chk 0x13 0xE7       COM8
