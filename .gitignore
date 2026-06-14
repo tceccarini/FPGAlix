@@ -52,3 +52,4 @@ sw/**/Module.symvers
 
 # IDE settings
 .vscode/
+.claude/
