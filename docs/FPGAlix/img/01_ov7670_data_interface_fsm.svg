@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 860" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#212529"/>
+    </marker>
+    <marker id="arrowST" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7048e8"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="860" fill="#ffffff"/>
+
+  <!-- reset / initial state marker -->
+  <circle cx="550" cy="25" r="6" fill="#212529"/>
+  <line x1="550" y1="31" x2="550" y2="68" stroke="#212529" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="562" y="52" font-size="12" fill="#495057">reset_n = 0</text>
+
+  <!-- ================= WAIT_SYNC ================= -->
+  <rect x="420" y="70" width="260" height="95" rx="8" fill="#fff3e0" stroke="#e8590c" stroke-width="1.8"/>
+  <text x="550" y="104" font-size="16" font-weight="bold" fill="#8a3800" text-anchor="middle">WAIT_SYNC</text>
+  <text x="550" y="126" font-size="11.5" fill="#8a3800" text-anchor="middle">idle · stat_byte_cnt held at 0</text>
+  <text x="550" y="143" font-size="11.5" fill="#8a3800" text-anchor="middle">st_valid / st_sop / st_eop = 0</text>
+
+  <!-- ================= WAIT_READY (left) ================= -->
+  <rect x="110" y="440" width="290" height="100" rx="8" fill="#fff3e0" stroke="#e8590c" stroke-width="1.8"/>
+  <text x="255" y="474" font-size="16" font-weight="bold" fill="#8a3800" text-anchor="middle">WAIT_READY</text>
+  <text x="255" y="496" font-size="11.5" fill="#8a3800" text-anchor="middle">frame already dropped</text>
+  <text x="255" y="513" font-size="11.5" fill="#8a3800" text-anchor="middle">holds until downstream recovers</text>
+
+  <!-- ================= ACQUIRE (right) ================= -->
+  <rect x="700" y="440" width="290" height="100" rx="8" fill="#fff3e0" stroke="#e8590c" stroke-width="1.8"/>
+  <text x="845" y="474" font-size="16" font-weight="bold" fill="#8a3800" text-anchor="middle">ACQUIRE</text>
+  <text x="845" y="496" font-size="11.5" fill="#8a3800" text-anchor="middle">drives st_data from cam_data</text>
+  <text x="845" y="513" font-size="11.5" fill="#8a3800" text-anchor="middle">one byte per cam_href='1' cycle</text>
+
+  <!-- ============ WAIT_SYNC -> ACQUIRE ============ -->
+  <path d="M625,165 C 750,250 850,320 900,438" fill="none" stroke="#212529" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="950" y="270" font-size="12.5" fill="#212529" text-anchor="end">cam_vsync falling edge</text>
+  <text x="950" y="287" font-size="12.5" fill="#212529" text-anchor="end">&amp; ctrl_enabled = 1</text>
+
+  <!-- ============ ACQUIRE -> WAIT_SYNC (frame complete) ============ -->
+  <path d="M770,438 C 640,340 540,240 495,163" fill="none" stroke="#7048e8" stroke-width="2" marker-end="url(#arrowST)"/>
+  <text x="695" y="205" font-size="12.5" fill="#5f3dc4" text-anchor="end">stat_byte_cnt = FRAME_SIZE−1 (bytes, not pixels)</text>
+  <text x="695" y="222" font-size="12.5" fill="#5f3dc4" text-anchor="end">&amp; cam_href = 1 &amp; st_ready = 1:</text>
+  <text x="695" y="239" font-size="12.5" fill="#5f3dc4" text-anchor="end">st_eop = 1, frame complete</text>
+
+  <!-- ============ ACQUIRE -> WAIT_READY ============ -->
+  <path d="M700,480 C 600,450 500,450 402,480" fill="none" stroke="#212529" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="550" y="445" font-size="12.5" fill="#212529" text-anchor="middle">st_ready = 0: stat_dropped_cnt++</text>
+  <text x="550" y="462" font-size="12.5" fill="#212529" text-anchor="middle">(mid-frame backpressure)</text>
+
+  <!-- ============ WAIT_READY -> WAIT_SYNC ============ -->
+  <path d="M290,438 C 350,320 400,250 465,163" fill="none" stroke="#7048e8" stroke-width="2" marker-end="url(#arrowST)"/>
+  <text x="395" y="240" font-size="12.5" fill="#5f3dc4" text-anchor="start">st_ready = 1:</text>
+  <text x="395" y="257" font-size="12.5" fill="#5f3dc4" text-anchor="start">st_eop = 1 (closes the</text>
+  <text x="395" y="274" font-size="12.5" fill="#5f3dc4" text-anchor="start">dropped packet), resync</text>
+
+  <!-- ============ WAIT_READY self-loop ============ -->
+  <path d="M315,540 C 345,600 190,600 210,542" fill="none" stroke="#212529" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="255" y="622" font-size="12" fill="#212529" text-anchor="middle">cam_vsync falling edge,</text>
+  <text x="255" y="639" font-size="12" fill="#212529" text-anchor="middle">still st_ready = 0: stat_dropped_cnt++</text>
+
+  <!-- ============ ACQUIRE self-loop ============ -->
+  <path d="M905,540 C 935,600 780,600 800,542" fill="none" stroke="#7048e8" stroke-width="2" marker-end="url(#arrowST)"/>
+  <text x="845" y="622" font-size="12" fill="#5f3dc4" text-anchor="middle">cam_href = 1 &amp; st_ready = 1:</text>
+  <text x="845" y="639" font-size="12" fill="#5f3dc4" text-anchor="middle">transfer byte, st_sop = 1 on byte 0</text>
+
+  <!-- ================= Legend ================= -->
+  <g transform="translate(70,700)">
+    <rect x="0" y="0" width="960" height="80" rx="8" fill="#ffffff" stroke="#dee2e6" stroke-width="1.2"/>
+    <line x1="16" y1="24" x2="46" y2="24" stroke="#212529" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="54" y="28" font-size="12" fill="#212529">Guard condition (registers / FSM control)</text>
+
+    <line x1="16" y1="48" x2="46" y2="48" stroke="#7048e8" stroke-width="2" marker-end="url(#arrowST)"/>
+    <text x="54" y="52" font-size="12" fill="#212529">Guard condition with an Avalon-ST side effect (st_sop / st_eop)</text>
+
+    <text x="520" y="28" font-size="12" fill="#495057">FSM entirely in the pclk domain (camera pixel clock)</text>
+    <text x="520" y="52" font-size="12" fill="#495057">Source: hw/my_vhdl/qsys_components/ov7670_data_interface.vhd</text>
+  </g>
+</svg>
