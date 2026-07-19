@@ -78,7 +78,7 @@ resistor; this clock is not routed across the ribbon cable. The
 alternative design, generating the clock on the FPGA/receiver side and
 distributing it to the camera over the cable, would require an
 additional buffer stage on that side as well. Locating a dedicated cheap
-oscillator next to the sensor avoids the cost of this pricer second buffer and
+oscillator next to the sensor avoids the cost of this pricier second buffer and
 removes the signal-integrity risk associated with distributing a 24 MHz
 clock over the length of the ribbon cable.
 
@@ -101,9 +101,9 @@ Two termination strategies are employed, one at each end of the cable:
 ### 2.5 Video signal timing
 
 The two datasheet figures below describe how the video pins behave, and
-are the basis for the acquisition core described in the next chapter.
+are the basis for the acquisition core described in Chapter 4.
 
-![OV7670 horizontal timing: PCLK, HREF and D[7:0] within one line](img/ov7670_fig5_horizontal_timing.png)
+![OV7670 horizontal timing: PCLK, HREF and D[7:0] within one line](img/01_ov7670_fig5_horizontal_timing.png)
 
 *Figure 2.1: OV7670 horizontal timing (source: OV7670/OV7171 datasheet, Figure 5).*
 
@@ -122,7 +122,7 @@ frame timing, Figure 2.2 below) stays the same regardless of format.
 Byte ordering and bit layout within each format are given in the
 [datasheet](#references), not reproduced here.
 
-![OV7670 VGA frame timing: VSYNC, HREF, HSYNC and D[7:0] across a full frame](img/ov7670_fig6_vga_frame_timing.png)
+![OV7670 VGA frame timing: VSYNC, HREF, HSYNC and D[7:0] across a full frame](img/01_ov7670_fig6_vga_frame_timing.png)
 
 *Figure 2.2: OV7670 VGA frame timing (source: OV7670/OV7171 datasheet, Figure 6).*
 
@@ -144,44 +144,7 @@ comes from.
 > for extended periods. See [`WARNING.md`](#references) for details and
 > mitigations.
 
-## 3. The camera acquisition core (`ov7670_data_interface`)
-
-`ov7670_data_interface` is a custom Platform Designer component that turns the
-camera's `PCLK`/`HREF`/`VSYNC`/`D[7:0]` signals into the Avalon-ST
-stream the rest of the pipeline expects (Chapter 1). Both its Avalon-ST
-source and its Avalon-MM register interface run in the `pclk` domain,
-the camera pixel clock. A single `ctrl` register lets software enable
-acquisition (`ctrl_enabled`), drive the camera's power-down pin
-(`ctrl_cam_pwdn`), and clear the dropped-frame counter
-(`ctrl_clear_counters`); a second, read-only register
-(`stat_dropped_cnt`) counts frames the core had to discard.
-
-The core is a three-state machine, built directly on the `HREF`/`VSYNC`
-behavior described in Section 2.5:
-
-![ov7670_data_interface FSM: WAIT_SYNC, ACQUIRE, WAIT_READY](img/01_ov7670_data_interface_fsm.svg)
-
-*Figure 3.1: State machine of `ov7670_data_interface`.*
-
-- **`WAIT_SYNC`**: the reset and idle state. It waits for `cam_vsync`'s
-  falling edge, the frame-start marker from Section 2.5, with
-  acquisition enabled (`ctrl_enabled = 1`), and moves to `ACQUIRE`.
-- **`ACQUIRE`**: for every `pclk` cycle with `cam_href = 1`, one byte of
-  `cam_data` is transferred onto the Avalon-ST bus. `st_sop` is raised
-  on the very first byte and `st_eop` on the `FRAME_SIZE`-th, `FRAME_SIZE`
-  being a count of bytes, not pixels (Section 2.5), closing the frame
-  and returning to `WAIT_SYNC`: the byte count, not a second `VSYNC`
-  edge, is what ends the packet. If the downstream side
-  deasserts `st_ready` at any point, the core does not stall; it counts
-  the frame as dropped and moves to `WAIT_READY` instead.
-- **`WAIT_READY`**: reached after a drop. The core waits for `st_ready`
-  to return, then emits a bare `st_eop` so the downstream FIFO can
-  discard the incomplete packet cleanly, and goes back to `WAIT_SYNC`.
-  Each further `VSYNC` falling edge seen while still waiting counts as
-  another dropped frame, so a downstream stall spanning several frames
-  is reported accurately rather than silently swallowed.
-
-## 4. Generating and resetting `pclk` (`pclk_reset_controller`)
+## 3. Generating and resetting `pclk` (`pclk_reset_controller`)
 
 Unlike `sys_clk` (`clk_0`, 50 MHz, free-running from the board
 oscillator), `pclk` does not exist until the camera is powered up and
@@ -195,9 +158,9 @@ that go with it.
 
 ![pclk and pclk_reset_n distribution, from the camera to every pclk-domain block](img/01_pclk_distribution.svg)
 
-*Figure 4.1: Distribution of `pclk` and its reset, from the camera to every pclk-domain block.*
+*Figure 3.1: Distribution of `pclk` and its reset, from the camera to every pclk-domain block.*
 
-### 4.1 `pclk` as a Platform Designer clock
+### 3.1 `pclk` as a Platform Designer clock
 
 `pclk_reset_controller` takes the physical `pclk` pin as `pclk_in` and
 re-exports it as `pclk_out`, a genuine Platform Designer clock source:
@@ -205,13 +168,13 @@ re-exports it as `pclk_out`, a genuine Platform Designer clock source:
 implements with a global clock buffer rather than ordinary fabric
 routing.
 
-### 4.2 The reset problem
+### 3.2 The reset problem
 
 The domain's reset is controlled by a single `sw_release` register bit,
 reachable from `sys_clk` (offset 0x0 on the main Avalon-MM bus). A
-synchronizer for it can't be built the ordinary way: logic sitting in
+synchronizer for it cannot be built the ordinary way: logic sitting in
 the `pclk` domain normally needs `pclk` edges to deassert its reset
-cleanly, but `pclk` itself doesn't exist while the camera is held in
+cleanly, but `pclk` itself does not exist while the camera is held in
 reset, so waiting on it to release its own gating reset would deadlock.
 
 `pclk_reset_controller` resolves this by deriving two separate reset
@@ -235,7 +198,7 @@ outputs from the same condition, `sys_reset_n and sw_release`:
 Because `camera_reset_n` has no dependency on `pclk`, releasing it is
 always safe regardless of whether `pclk` is running.
 
-### 4.3 Usage sequence
+### 3.3 Usage sequence
 
 The dependency above dictates the order software has to follow:
 
@@ -247,6 +210,51 @@ The dependency above dictates the order software has to follow:
 3. Only once the camera is out of reset can it answer over SCCB, so I2C
    configuration has to come after this step, not before it.
 
+## 4. The camera acquisition core (`ov7670_data_interface`)
+
+`ov7670_data_interface` is a custom Platform Designer component that turns the
+camera's `PCLK`/`HREF`/`VSYNC`/`D[7:0]` signals into the Avalon-ST
+stream the rest of the pipeline expects (Chapter 1). Both its Avalon-ST
+source and its Avalon-MM register interface run in the `pclk` domain,
+the camera pixel clock. A single `ctrl` register lets software enable
+acquisition (`ctrl_enabled`), drive the camera's power-down pin
+(`ctrl_cam_pwdn`), and clear the dropped-frame counter
+(`ctrl_clear_counters`); a second, read-only register
+(`stat_dropped_cnt`) counts frames the core had to discard.
+
+Because this register interface resides in the `pclk` domain rather
+than `sys_clk`, software cannot reach it directly from the LW HPS bridge:
+`mm_clock_crossing_bridge_0` sits between the two domains for exactly
+this purpose, translating an Avalon-MM access from `sys_clk` into
+`pclk` and back. It exists solely to give `ov7670_data_interface_0`'s
+register file a path from software; no other component in the design
+needs it.
+
+The core is a three-state machine, built directly on the `HREF`/`VSYNC`
+behavior described in Section 2.5:
+
+![ov7670_data_interface FSM: WAIT_SYNC, ACQUIRE, WAIT_READY](img/01_ov7670_data_interface_fsm.svg)
+
+*Figure 4.1: State machine of `ov7670_data_interface`.*
+
+- **`WAIT_SYNC`**: the reset and idle state. It waits for `cam_vsync`'s
+  falling edge, the frame-start marker from Section 2.5, with
+  acquisition enabled (`ctrl_enabled = 1`), and moves to `ACQUIRE`.
+- **`ACQUIRE`**: for every `pclk` cycle with `cam_href = 1`, one byte of
+  `cam_data` is transferred onto the Avalon-ST bus. `st_sop` is raised
+  on the very first byte and `st_eop` on the `FRAME_SIZE`-th, `FRAME_SIZE`
+  being a count of bytes, not pixels (Section 2.5), closing the frame
+  and returning to `WAIT_SYNC`: the byte count, not a second `VSYNC`
+  edge, is what ends the packet. If the downstream side
+  deasserts `st_ready` at any point, the core does not stall; it counts
+  the frame as dropped and moves to `WAIT_READY` instead.
+- **`WAIT_READY`**: reached after a drop. The core waits for `st_ready`
+  to return, then emits a bare `st_eop` so the downstream FIFO can
+  discard the incomplete packet cleanly, and goes back to `WAIT_SYNC`.
+  Each further `VSYNC` falling edge seen while still waiting counts as
+  another dropped frame, so a downstream stall spanning several frames
+  is reported accurately rather than silently swallowed.
+
 ## 5. The Avalon-ST pipeline: from `ov7670_data_interface` to `mSGDMA`
 
 Chapter 1 established the rationale for streaming pixel data from the
@@ -254,7 +262,7 @@ camera to `mSGDMA` over Avalon-ST, such that the HPS is limited to
 configuring a transfer and being notified upon its completion. This
 chapter examines that stream in detail, from
 `ov7670_data_interface_0.st_source` to the write into HPS DDR3; the
-corresponding block diagram is provided in the system overview.
+corresponding block diagram is provided in Chapter 6.
 
 ### 5.1 The pipeline
 
@@ -262,7 +270,7 @@ The stream traverses `ov7670_data_interface_0`, `dc_fifo_0`,
 `st_adapter_0`, `sc_fifo_0`, and `msgdma_0`, in that order. Of these
 components, only `dc_fifo_0` spans a clock-domain boundary: its
 `in_clk` input is driven by `pclk_out` from `pclk_reset_controller_0`
-(Chapter 4), while its `out_clk` output is driven by `sys_clk`. Every
+(Chapter 3), while its `out_clk` output is driven by `sys_clk`. Every
 component downstream of `dc_fifo_0`, namely `st_adapter_0`, `sc_fifo_0`,
 and `msgdma_0`, operates entirely within the `sys_clk` domain.
 
@@ -275,7 +283,7 @@ synchronization logic than crossing a wider stream, since a
 dual-clock FIFO requires synchronizers proportional to its data width.
 Second, this arrangement confines the dependency on `pclk`, whose
 frequency varies with the camera's output format (Section 2.5) and
-which ceases entirely while the camera is held in reset (Chapter 4), to
+which ceases entirely while the camera is held in reset (Chapter 3), to
 the smallest possible portion of the design; every subsequent stage
 operates against a single, stable clock.
 
@@ -285,7 +293,7 @@ between `pclk` and `sys_clk`, as well as transient stalls on the
 `sys_clk` side, without requiring backpressure to propagate to the
 camera interface. Backpressure that does reach `ov7670_data_interface`'s
 own FSM is instead handled by discarding the affected frame rather than
-stalling (Chapter 3).
+stalling (Chapter 4).
 
 ### 5.3 Width conversion: `st_adapter_0`
 
@@ -320,7 +328,7 @@ selects, by absolute priority and, among ports of equal priority,
 weighted round-robin, which port's pending transaction is forwarded to
 the memory controller.
 
-![SDRAM Controller Subsystem high-level block diagram: MPU, L3 interconnect and FPGA fabric each reach the Multi-Port Front End through independent interfaces](img/hps_fig12-1_sdram_controller_subsystem.png)
+![SDRAM Controller Subsystem high-level block diagram: MPU, L3 interconnect and FPGA fabric each reach the Multi-Port Front End through independent interfaces](img/01_hps_fig12-1_sdram_controller_subsystem.png)
 
 *Figure 5.1: SDRAM Controller Subsystem high-level block diagram (source: Cyclone V Hard Processor System Technical Reference Manual, Figure 12-1).*
 
@@ -336,7 +344,7 @@ the MPU depends on. The dedicated SDRAM port avoids that competition
 entirely; the only resource `msgdma_0` shares with the CPU is the MPFE
 arbiter and the DDR3 device itself.
 
-![L3 Interconnect and L4 Buses: L3 Interconnect (NIC-301), HPS-to-FPGA and FPGA-to-HPS bridges, MPU Subsystem with L2 Cache, and the SDRAM Controller Subsystem](img/hps_fig8-1_l3_interconnect_l4_buses.png)
+![L3 Interconnect and L4 Buses: L3 Interconnect (NIC-301), HPS-to-FPGA and FPGA-to-HPS bridges, MPU Subsystem with L2 Cache, and the SDRAM Controller Subsystem](img/01_hps_fig8-1_l3_interconnect_l4_buses.png)
 
 *Figure 5.2: L3 Interconnect and L4 buses (source: Cyclone V Hard Processor System Technical Reference Manual, Figure 8-1). This diagram covers the L3-routed paths only; the FPGA-to-HPS SDRAM interface `msgdma_0` uses is not part of it and appears, aggregated, in Figure 5.1 instead. It is included here for the L2 Cache's two masters: one into the L3 Interconnect, one going straight to the SDRAM Controller Subsystem, the same separation `msgdma_0`'s dedicated port relies on.*
 
@@ -369,13 +377,39 @@ exact transfer size and becomes an upper bound instead, with the
 transfer actually ending when `mSGDMA` observes `st_eop` on its sink.
 This is precisely why
 `ov7670_data_interface` frames the stream with `st_sop` and `st_eop` in
-the first place (Chapter 3): a complete frame closes its own descriptor
+the first place (Chapter 4): a complete frame closes its own descriptor
 via `st_eop` at `FRAME_SIZE` bytes, while the bare `st_eop` emitted for
-a dropped frame (Chapter 3, `WAIT_READY`) closes the descriptor early,
+a dropped frame (Chapter 4, `WAIT_READY`) closes the descriptor early,
 before `FRAME_SIZE` bytes have been transferred. The `response` port
 reports the actual number of bytes transferred between `st_sop` and
 `st_eop` for each descriptor, which is how software distinguishes a
 short, dropped frame from a complete one.
+
+## 6. System overview
+
+The diagram below is the complete Platform Designer system
+(`soc_system.qsys`), placing the blocks discussed in the preceding
+chapters within the wider system: the HPS, its lightweight and full
+bridges into the FPGA fabric, and the DE1-SoC peripherals wired
+directly to dedicated HPS pins.
+
+![soc_system.qsys block diagram: HPS, dedicated peripherals, Platform Designer bus fabric, video capture pipeline, and on-board I/O](img/01_qsys_block_diagram.svg)
+
+*Figure 6.1: `soc_system.qsys` block diagram.*
+
+Several blocks shown here are not covered by a dedicated chapter: the
+LED, switch, and key PIOs, the hex display controller, the System ID
+core, the JTAG UART, the Interrupt Latency Counter, and the HPS
+peripherals wired to their own dedicated pins (Ethernet, USB, SD/MMC,
+QSPI flash, and the various serial buses). None of these originate
+from this project's own design work; they were inherited and combined
+from the Cyclone V Golden Hardware Reference Design
+(`repos/ghrd-socfpga/cv_soc_devkit_ghrd`) and from the DE1-SoC Embedded
+Linux Systems guide (`docs/Misc/DE1-SoC_Embedded_Linux_Systems_1_9.pdf`),
+the two starting points this system was built from, and are documented
+no further here. The chapters above account for everything specific to
+this project: the camera, its clocking, and the path from acquisition
+to DDR3.
 
 ## References
 

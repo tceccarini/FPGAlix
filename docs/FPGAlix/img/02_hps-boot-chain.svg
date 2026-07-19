@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 320" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- boxes -->
+  <g font-size="15" text-anchor="middle">
+
+    <!-- 1. Reset -->
+    <rect x="10" y="100" width="180" height="110" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="100" y="145"><tspan x="100" dy="0">Reset</tspan><tspan x="100" dy="20" font-size="12" fill="#555">BSEL[2:0] sampled</tspan></text>
+
+    <!-- 2. Boot ROM -->
+    <rect x="220" y="100" width="180" height="110" rx="10" fill="#d9d9d9" stroke="#888"/>
+    <text x="310" y="138"><tspan x="310" dy="0">Boot ROM</tspan><tspan x="310" dy="20" font-size="12" fill="#555">fixed, on-chip</tspan><tspan x="310" dy="16" font-size="12" fill="#555">reads boot source</tspan></text>
+
+    <!-- 3. SD card partition 3 -->
+    <rect x="430" y="90" width="200" height="130" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="530" y="128"><tspan x="530" dy="0">SD Card</tspan><tspan x="530" dy="18" font-size="12" fill="#555">Partition 3 (A2, raw)</tspan><tspan x="530" dy="18" font-size="12" fill="#555">u-boot-with-spl.sfp</tspan></text>
+
+    <!-- 4. SPL -->
+    <rect x="660" y="90" width="200" height="130" rx="10" fill="#2ca02c" stroke="#1e7a1e"/>
+    <text x="760" y="128" fill="#fff"><tspan x="760" dy="0">SPL</tspan><tspan x="760" dy="18" font-size="12">on-chip RAM</tspan><tspan x="760" dy="16" font-size="12">clocks · pinmux · DDR init</tspan></text>
+
+    <!-- 5. U-Boot -->
+    <rect x="890" y="100" width="180" height="110" rx="10" fill="#2ca02c" stroke="#1e7a1e"/>
+    <text x="980" y="145" fill="#fff"><tspan x="980" dy="0">U-Boot</tspan><tspan x="980" dy="20" font-size="12">runs in DDR</tspan></text>
+
+    <!-- 6. FPGA Manager -->
+    <rect x="1100" y="90" width="210" height="130" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="1205" y="122"><tspan x="1205" dy="0">FPGA Manager</tspan><tspan x="1205" dy="20" font-size="12" fill="#555">loads soc_system.rbf</tspan><tspan x="1205" dy="16" font-size="12" fill="#555">programs fabric,</tspan><tspan x="1205" dy="16" font-size="12" fill="#555">enables H2F/F2H bridges</tspan></text>
+
+    <!-- 7. Linux kernel -->
+    <rect x="1340" y="100" width="200" height="110" rx="10" fill="#2ca02c" stroke="#1e7a1e"/>
+    <text x="1440" y="138" fill="#fff"><tspan x="1440" dy="0">Linux Kernel</tspan><tspan x="1440" dy="20" font-size="12">zImage + DTB</tspan><tspan x="1440" dy="16" font-size="12">ext4 rootfs (partition 2)</tspan></text>
+
+  </g>
+
+  <!-- arrows -->
+  <g stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <line x1="190" y1="155" x2="215" y2="155"/>
+    <line x1="400" y1="155" x2="425" y2="155"/>
+    <line x1="630" y1="155" x2="655" y2="155"/>
+    <line x1="860" y1="155" x2="885" y2="155"/>
+    <line x1="1070" y1="155" x2="1095" y2="155"/>
+    <line x1="1310" y1="155" x2="1335" y2="155"/>
+  </g>
+</svg>

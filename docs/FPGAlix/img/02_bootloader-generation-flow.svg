@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 440" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <g text-anchor="middle">
+
+    <!-- Row 1 -->
+    <rect x="8" y="15" width="150" height="120" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="83" y="65" font-size="15"><tspan x="83" dy="0">Hardware</tspan><tspan x="83" dy="20">Project</tspan></text>
+
+    <rect x="178" y="15" width="130" height="120" rx="10" fill="#bfbfbf" stroke="#888"/>
+    <text x="243" y="65" font-size="15"><tspan x="243" dy="0">Quartus</tspan><tspan x="243" dy="20">Prime</tspan></text>
+
+    <rect x="328" y="15" width="140" height="120" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="398" y="50"><tspan x="398" dy="0" font-size="15">Handoff</tspan><tspan x="398" dy="20" font-size="15">Folder</tspan><tspan x="398" dy="18" font-size="12" fill="#555">(xml)</tspan></text>
+
+    <rect x="488" y="15" width="170" height="120" rx="10" fill="#2ca02c" stroke="#1e7a1e"/>
+    <text x="573" y="50" fill="#fff"><tspan x="573" dy="0" font-size="15">BSP</tspan><tspan x="573" dy="20" font-size="15">Generator</tspan><tspan x="573" dy="18" font-size="12">cv_bsp_generator.py</tspan></text>
+
+    <rect x="678" y="15" width="140" height="120" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="748" y="50"><tspan x="748" dy="0" font-size="15">Header</tspan><tspan x="748" dy="20" font-size="15">files</tspan><tspan x="748" dy="18" font-size="12" fill="#555">(.h)</tspan></text>
+
+    <!-- Row 2 -->
+    <rect x="328" y="160" width="140" height="120" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="398" y="225" font-size="15">GitHub</text>
+
+    <rect x="488" y="160" width="170" height="120" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="573" y="210" font-size="15"><tspan x="573" dy="0">Git</tspan><tspan x="573" dy="20">Clone</tspan></text>
+
+    <rect x="678" y="160" width="140" height="120" rx="10" fill="#2ca02c" stroke="#1e7a1e"/>
+    <text x="748" y="193" fill="#fff"><tspan x="748" dy="0" font-size="15">U-Boot</tspan><tspan x="748" dy="18" font-size="12">generic</tspan><tspan x="748" dy="16" font-size="12">source code</tspan></text>
+
+    <!-- make bar spanning both rows -->
+    <rect x="838" y="15" width="60" height="265" rx="6" fill="#f2f2f2" stroke="#888"/>
+    <text x="868" y="153" font-size="15" transform="rotate(-90 868 153)">make</text>
+
+    <!-- Bootloader Image -->
+    <rect x="918" y="98" width="140" height="100" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="988" y="138" font-size="15"><tspan x="988" dy="0">Bootloader</tspan><tspan x="988" dy="20">Image</tspan></text>
+
+    <!-- User Options -->
+    <rect x="678" y="320" width="140" height="100" rx="10" fill="#f2f2f2" stroke="#888"/>
+    <text x="748" y="360" font-size="15"><tspan x="748" dy="0">User</tspan><tspan x="748" dy="20">Options</tspan></text>
+
+  </g>
+
+  <!-- arrows -->
+  <g stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <line x1="158" y1="75" x2="173" y2="75"/>
+    <line x1="308" y1="75" x2="323" y2="75"/>
+    <line x1="468" y1="75" x2="483" y2="75"/>
+    <line x1="658" y1="75" x2="673" y2="75"/>
+    <line x1="748" y1="135" x2="748" y2="155"/>
+    <line x1="468" y1="220" x2="483" y2="220"/>
+    <line x1="658" y1="220" x2="673" y2="220"/>
+    <line x1="748" y1="320" x2="748" y2="285"/>
+    <line x1="818" y1="220" x2="833" y2="220"/>
+    <line x1="898" y1="148" x2="913" y2="148"/>
+  </g>
+</svg>
