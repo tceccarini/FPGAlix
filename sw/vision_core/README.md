@@ -200,8 +200,14 @@ Cortex-A9 in software. At 640×480 @ 30 fps:
 - **MJPEG** is the recommended choice for full-color streaming on this target:
   fast with libjpeg-turbo NEON, no encoder state, low latency.
 
-### Zero-copy V4L2 (advanced)
-OpenCV's `VideoCapture` with `CAP_V4L2` performs a kernel→userspace copy for
+### ~~Zero-copy V4L2 (advanced)~~
+
+~~OpenCV's `VideoCapture` with `CAP_V4L2` performs a kernel→userspace copy for
 each frame. If the OV7670 V4L2 driver supports `V4L2_MEMORY_MMAP` buffers,
 replacing `cv::VideoCapture` with a direct `ioctl`-based capture loop in
-`OV7670FilteredCapturer::openDevice` eliminates that copy.
+`OV7670FilteredCapturer::openDevice` eliminates that copy.~~
+
+Do not do this: the per-frame copy in `Capturer` (already a direct
+`ioctl`-based loop, not `cv::VideoCapture`) is what lets the V4L2 buffer be
+returned to the driver immediately instead of being held for the whole
+filter pipeline. See `docs/FPGAlix/05_VisionCore.md`, Section 3.

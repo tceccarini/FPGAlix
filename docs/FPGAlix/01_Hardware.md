@@ -385,7 +385,23 @@ reports the actual number of bytes transferred between `st_sop` and
 `st_eop` for each descriptor, which is how software distinguishes a
 short, dropped frame from a complete one.
 
-## 6. System overview
+## 6. The 7-segment displays (`hex_display_controller`)
+
+The DE1-SoC's six 7-segment displays are driven by `hex_display_controller`, a custom Platform Designer component. A single register controls all six displays together, and any six-digit decimal number written to it is displayed accordingly.
+
+### 6.1 Register interface
+
+The component exposes a single 32-bit Avalon-MM register on the LW HPS-to-FPGA bridge, with the following layout:
+
+- bit 31: enabled (`1` displays the value below, `0` blanks every digit)
+- bits `[19:0]`: the value to be displayed, in the range `0`..`999999`
+- any value above `999999` in bits `[19:0]` forces every digit to a dash, provided bit 31 is set; if bit 31 is clear, every digit is blanked regardless of this value
+
+### 6.2 From binary to seven segments
+
+The 20-bit binary value is converted to six BCD digits using the Double Dabble algorithm, each digit then driven onto one of the six displays. Leading zeroes are suppressed: only the digits needed to represent the value are shown, with the units digit always shown even when the value is zero.
+
+## 7. System overview
 
 The diagram below is the complete Platform Designer system
 (`soc_system.qsys`), placing the blocks discussed in the preceding
@@ -395,10 +411,10 @@ directly to dedicated HPS pins.
 
 ![soc_system.qsys block diagram: HPS, dedicated peripherals, Platform Designer bus fabric, video capture pipeline, and on-board I/O](img/01_qsys_block_diagram.svg)
 
-*Figure 6.1: `soc_system.qsys` block diagram.*
+*Figure 7.1: `soc_system.qsys` block diagram.*
 
 Several blocks shown here are not covered by a dedicated chapter: the
-LED, switch, and key PIOs, the hex display controller, the System ID
+LED, switch, and key PIOs, the System ID
 core, the JTAG UART, the Interrupt Latency Counter, and the HPS
 peripherals wired to their own dedicated pins (Ethernet, USB, SD/MMC,
 QSPI flash, and the various serial buses). None of these originate
@@ -408,8 +424,8 @@ from the Cyclone V Golden Hardware Reference Design
 Linux Systems guide (`docs/Misc/DE1-SoC_Embedded_Linux_Systems_1_9.pdf`),
 the two starting points this system was built from, and are documented
 no further here. The chapters above account for everything specific to
-this project: the camera, its clocking, and the path from acquisition
-to DDR3.
+this project: the camera, its clocking, the path from acquisition
+to DDR3, and the 7-segment displays.
 
 ## References
 
