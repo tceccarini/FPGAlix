@@ -608,8 +608,11 @@ The board is logged into as `root` over the serial console, with the password se
 SSH access as `root` does not work, even though the serial console login does: OpenSSH's default `PermitRootLogin` setting only allows root to log in with a key, not a password, and this project's root account only has a password. A new user must therefore be created, from the serial console:
 
 ```bash
+mkdir -p /home
 adduser <username>
 ```
+
+The `mkdir -p /home` is necessary first: Buildroot's base skeleton does not include a `/home` directory, and BusyBox's `adduser` only creates the new user's home directory with a plain `mkdir()`, not `mkdir -p`. Without `/home` already in place, that `mkdir()` fails, silently, with nothing beyond a warning on the console; `adduser` still succeeds, but the new user is left with no home directory at all.
 
 The board's IP address, obtained automatically over Ethernet by `dhcpcd` ([Section 7.1.1](#711-base-configuration)), can then be read with either:
 

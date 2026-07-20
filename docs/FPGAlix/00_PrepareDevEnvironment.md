@@ -84,8 +84,7 @@ sudo apt install -y \
 - `default-jdk`: `repos/sopc2dts` is a plain Java tool, built with
   `javac`/`jar` via its own `Makefile`
   ([02. Board Bring-up, Section 6.3.1](02_BoardBringUp.md#631-using-sopc2dts-as-a-reference)),
-  not with Quartus's bundled JRE
-  ([Section 2.2](#22-quartus-needs-no-extra-libraries)), which is
+  not with Quartus's own bundled JRE (`quartus/linux64/jre64/`), which is
   runtime-only and has no `javac`.
 - `ffmpeg`: provides `ffplay`, used on the host to view `vision_core`'s
   RTSP output with minimal latency:
@@ -95,26 +94,7 @@ sudo apt install -y \
   VLC was tried first and dropped; `ffplay` with these flags is what
   actually got used going forward.
 
-### 2.2 Quartus needs no extra libraries
-
-Earlier notes for this project listed a long block of 32-bit (`i386`)
-compatibility libraries as required by Quartus. That does not hold for
-the Quartus Prime 22.1 install actually in use: every executable under
-`quartus/linux64/` (`quartus`, `quartus_sh`, `quartus_pgm`, `quartus_cpf`)
-and Platform Designer's own launcher
-(`quartus/sopc_builder/bin/qsys-edit`) is a 64-bit `x86-64` ELF binary,
-and `ldd` resolves every one of their non-Quartus-internal shared
-libraries to the system's own 64-bit copies under
-`/lib/x86_64-linux-gnu/`, never an `i386` one. Quartus also ships its own
-private JRE at `quartus/linux64/jre64/`, so no `default-jdk` or other
-system Java package is needed either.
-
-The only 32-bit binaries anywhere under the Quartus install are inside
-`questa_fse`, the bundled ModelSim/Questa simulator: its UVM DPI
-libraries and its own private GCC 7.4 toolchain. This project does not
-use Questa, so that corner does not matter here either.
-
-### 2.3 Install the software, and where it lives
+### 2.2 Install the software, and where it lives
 
 | Software | Version | Install path |
 |---|---|---|
@@ -125,10 +105,10 @@ The user's home folder is sufficient for both; a system-wide installation
 is not required. See [Section 3](#3-getting-the-installers) for where to
 download each of these.
 
-### 2.4 Environment variables
+### 2.3 Environment variables
 
 Add to `~/.bashrc`, matching the install paths from
-[Section 2.3](#23-install-the-software-and-where-it-lives):
+[Section 2.2](#22-install-the-software-and-where-it-lives):
 
 ```bash
 export QUARTUS_ROOTDIR="$HOME/Programs/Altera/22.1/quartus/"
@@ -159,7 +139,7 @@ never exported globally.
   `make intel` target ([Section 2.1](#21-apt-packages)), which is a
   completely separate, x86_64 build of the same program.
 
-### 2.5 USB-Blaster and serial console access
+### 2.4 USB-Blaster and serial console access
 
 Beyond the packages installed in [Section 2.1](#21-apt-packages), the
 board requires access to two USB devices: the USB-Blaster, used for JTAG
@@ -201,7 +181,7 @@ sudo usermod -aG dialout "$USER"
 Log out and back in (or `newgrp plugdev`/`newgrp dialout`) for both group
 changes to take effect.
 
-### 2.6 Editor
+### 2.5 Editor
 
 Both the VHDL sources under `hw/` and the C/C++/Python sources under `sw/`
 are written in Visual Studio Code, with the following extensions:
