@@ -8,7 +8,7 @@ DDR3 while minimizing the involvement of the CPU in the acquisition
 process. The processing cores are intended to configure a transfer once
 and be notified upon its completion, without participating in the
 handling of individual bytes. This requirement leads directly to the
-adoption of the **mSGDMA** (modular Scatter-Gather DMA) core: an Avalon
+adoption of the **mSGDMA** (modular Scatter-Gather DMA) IP: an Avalon
 Memory-Mapped DMA engine capable of reading from an Avalon-ST stream and
 writing it to memory autonomously.
 
@@ -44,7 +44,7 @@ configured, the sensor exposes the following signals:
 - **`SIOC`/`SIOD`**: SCCB, a two-wire control interface derived from I2C, used to access the sensor's configuration registers.
 - **`RESET#`**, **`PWDN`**: reset and power-down control inputs.
 
-Datasheet: [`OV7670_2006.pdf`](#references).
+Datasheet: [`OV7670_2006.pdf`](#references). Camera module schematic: [`CameraModuleSchematic.jpg`](#references).
 
 ### 2.2 Rationale for a custom adapter board
 
@@ -58,11 +58,13 @@ purpose-built PCBs, connected by a standard 40-pin GPIO ribbon cable:
 - **Transmitter (camera side)**: mounted adjacent to the OV7670
   module. Each video signal (PCLK, HREF, VSYNC, D[7:0]) is driven
   through an `SN74ALVC16244A` line buffer and onto the ribbon cable through
-  a 33 Ω series resistor.
+  a 33 Ω series resistor; SDA and SCL each get their own 4.7 kΩ
+  pull-up resistor, one per line, two on this board.
 - **Receiver (FPGA side)**: mounted at the DE1-SoC `GPIO_0` header.
   Each incoming video signal is terminated by a pair of 220 Ω resistors
-  to `+3.3V` and to `DGND` (Section 2.4); the SDA/SCL lines are further
-  provided with 4.7 kΩ pull-up resistors.
+  to `+3.3V` and to `DGND` (Section 2.4); SDA and SCL are, likewise,
+  each given their own 4.7 kΩ pull-up resistor, one per line, two on
+  this board as well.
 
 > **Note:** this is the same buffer device discussed in
 > [`WARNING.md`](#references); the bus-hold defect described there
@@ -131,13 +133,11 @@ begins on `VSYNC`'s falling edge; after a blanking gap, the first line
 begins at the first `HREF` rising edge (row 0). The last active row
 (row 479) ends on its `HREF` falling edge, and after a further blanking
 gap `VSYNC`'s next rising edge signals that the frame is complete. Over
-a full frame this amounts to 480 active rows of 640 bytes each, which
-is where the `FRAME_SIZE = 307200` parameter of `ov7670_data_interface_0`
-comes from.
+a full frame this amounts to 480 active rows of 640 pixels each.
 
 > `HSYNC` appears in Figure 2.2 for reference only: it is not a physical
 > output pin on the OV7670. Only `PCLK`, `HREF`, and `VSYNC` are, and
-> they are what the acquisition core actually uses to delimit frames
+> they are what the custom acquisition IP core actually uses to delimit frames
 > and lines.
 
 > **Hardware bug:** the camera must not be left in RESET or POWER-DOWN
@@ -171,7 +171,7 @@ routing.
 ### 3.2 The reset problem
 
 The domain's reset is controlled by a single `sw_release` register bit,
-reachable from `sys_clk` (offset 0x0 on the main Avalon-MM bus). A
+reachable the main Avalon-MM bus running in the `sys_clk` domain. A
 synchronizer for it cannot be built the ordinary way: logic sitting in
 the `pclk` domain normally needs `pclk` edges to deassert its reset
 cleanly, but `pclk` itself does not exist while the camera is held in
@@ -230,8 +230,22 @@ this purpose, translating an Avalon-MM access from `sys_clk` into
 register file a path from software; no other component in the design
 needs it.
 
-The core is a three-state machine, built directly on the `HREF`/`VSYNC`
-behavior described in Section 2.5:
+Functionally, the core forwards each active pixel byte onto the
+Avalon-ST bus as it arrives from the camera, treating an entire camera
+frame as a single Avalon-ST packet: `st_sop` marks its first byte,
+`st_eop` its last. As long as the downstream side keeps accepting data,
+this packet runs uninterrupted for the whole frame. If backpressure
+arrives instead, that is, the downstream side stops accepting data
+before the frame is complete, the core does not wait for it to recover:
+it abandons the frame in progress (drop), and inserts the EOP at the first
+opportunity, once the downstream side accepts data again, in place of
+the remaining pixel data. mSGDMA then terminates that transfer early,
+and software can tell the frame is incomplete from the number of bytes
+actually transferred, rather than being handed truncated pixel data as
+if it were a valid frame.
+
+This behavior is implemented as a three-state machine, built directly on
+the `HREF`/`VSYNC` signaling described in Section 2.5:
 
 ![ov7670_data_interface FSM: WAIT_SYNC, ACQUIRE, WAIT_READY](img/01_ov7670_data_interface_fsm.svg)
 
@@ -431,6 +445,7 @@ to DDR3, and the 7-segment displays.
 
 - OmniVision, *OV7670/OV7171 CMOS VGA CameraChip Sensor* datasheet: [`docs/OV7670_CameraModule/OV7670_2006.pdf`](../OV7670_CameraModule/OV7670_2006.pdf).
 - OmniVision, *OV7670 Implementation Guide (V1.0)*: [`docs/OV7670_CameraModule/OV7670 Implementation Guide (V1.0).pdf`](<../OV7670_CameraModule/OV7670 Implementation Guide (V1.0).pdf>).
+- OV7670 camera module schematic: [`docs/OV7670_CameraModule/CameraModuleSchematic.jpg`](../OV7670_CameraModule/CameraModuleSchematic.jpg).
 - Intel/Altera, *Avalon Interface Specifications*: [`docs/Altera/AvaloBusSpecs.pdf`](../Altera/AvaloBusSpecs.pdf) (Avalon-MM and Avalon-ST).
 - Intel/Altera, *Embedded Peripherals IP User Guide*: [`docs/Altera/EmbeddedPeripheralsIpGuide.pdf`](../Altera/EmbeddedPeripheralsIpGuide.pdf) (register maps and programming model for the standard Avalon IP cores used throughout this document).
 - Intel/Altera, *Cyclone V Hard Processor System Technical Reference Manual*: [`docs/Altera/HPSManual.pdf`](../Altera/HPSManual.pdf) (SDRAM Controller Subsystem and MPFE Multi-Port Arbitration chapters; Figure 12-1, page 12-2, reproduced as Figure 5.1; Figure 8-1, page 8-2, reproduced as Figure 5.2).

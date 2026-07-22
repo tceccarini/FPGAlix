@@ -1,11 +1,11 @@
 # FPGAlix
 
 FPGAlix interfaces an OV7670 camera module with a Terasic DE1-SoC's
-Cyclone V HPS through custom FPGA hardware, using DMA (mSGDMA) so that
+Cyclone V HPS through custom FPGA hardware using DMA (mSGDMA), so that
 transferring the video stream into memory requires no CPU involvement in
 the handling of individual bytes. Unlike its bare-metal successor,
 FPGAsteel, FPGAlix runs a full embedded Linux system (Buildroot) on the
-HPS: a V4L2 kernel driver exposes the camera as a standard `/dev/video0`,
+HPS: a V4L2 kernel driver exposes the camera as a standard `/dev/video0` device,
 and a userspace pipeline, `vision_core`, filters the stream and serves it
 out over RTSP. It also documents, step by step, the full toolchain and
 development environment needed to build and run it.
@@ -93,10 +93,10 @@ Log in as `wheel` (or `root` from the serial console, `cd`-ing to
 ```bash
 cd camera_driver_2
 su
-./resetCtrl.sh          # option 2, deassert reset
-./ov7670_ctrlif_set.sh  # select Bayer mode (1)
-./ov7670_dataif_ctrl.sh # option 1, enable frame acquisition
-insmod fpgalix_camera.ko
+./resetCtrl.sh           # option 2, deassert reset
+./ov7670_ctrlif_set.sh   # select Bayer mode (1)
+./ov7670_dataif_ctrl.sh  # option 1, enable frame acquisition
+insmod fpgalix_camera.ko # load camera driver module
 ```
 
 Then run `vision_core` ([Section 5](05_VisionCore.md#5-usage)), still as
@@ -116,8 +116,8 @@ Encoding [mjpeg/h264/raw, default: mjpeg]:
 ```
 
 `ov7670` is mandatory on the board, the webcam source being only for the
-native `make intel` build; MJPEG, left at its default by pressing Enter,
-is what this project recommends for full-color output here, the HPS
+native Intel (`make intel`) build; MJPEG, left at its default by pressing Enter,
+is what this project recommends for full-color output here since the HPS
 having no hardware video encoder
 ([05. vision_core, Section 1](05_VisionCore.md#1-introduction)).
 

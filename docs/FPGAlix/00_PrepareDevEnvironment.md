@@ -4,13 +4,13 @@
 
 The board boots a full Linux OS and is reachable over Ethernet, so no
 JTAG-based source debugger is needed on the host to debug software:
-`gdbserver`, installed on the board, is attached to remotely from the
-host with `gdb`, over the network. No in-circuit debugging is involved.
+`gdbserver`, installed on the board, can be attached remotely from the
+host with `gdb`, over the network so no in-circuit debugging is involved.
 
 JTAG is still needed for one thing this can't replace: debugging the FPGA
 fabric itself, with SignalTap's in-system logic analyzer, from Quartus.
-For that, a physical PC is necessary, not a VM. Forwarding the
-USB-Blaster from host to guest through the hypervisor's own USB
+For that, a physical PC is necessary, not a Virtual Machine. Forwarding the
+USB-Blaster from host to guest through an hypervisor's own USB
 redirection (VirtualBox/VMware "USB passthrough", Hyper-V's basic USB
 support) is a long-standing, widely reported source of failures on
 timing-sensitive JTAG traffic: corrupted transfers, chains that fail to
@@ -73,7 +73,7 @@ sudo apt install -y \
   [sw/vision_core/README.md](../../sw/vision_core/README.md).
 - `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`,
   `gstreamer1.0-plugins-bad`: the dev packages above only provide headers
-  for linking; actually running a natively-built `vision_core` needs the
+  for linking; actually running an intel-built `vision_core` needs the
   matching runtime plugins loaded at pipeline-construction time:
   `appsrc`/`videoconvert` (base), `rtpjpegpay`/`rtpvrawpay`/`rtph264pay`
   via `rtpmanager` (good), `openh264enc` (bad), matching the sub-plugin
@@ -83,9 +83,6 @@ sudo apt install -y \
   debug the V4L2 driver.
 - `default-jdk`: `repos/sopc2dts` is a plain Java tool, built with
   `javac`/`jar` via its own `Makefile`
-  ([02. Board Bring-up, Section 6.3.1](02_BoardBringUp.md#631-using-sopc2dts-as-a-reference)),
-  not with Quartus's own bundled JRE (`quartus/linux64/jre64/`), which is
-  runtime-only and has no `javac`.
 - `ffmpeg`: provides `ffplay`, used on the host to view `vision_core`'s
   RTSP output with minimal latency:
   ```bash
