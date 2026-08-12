@@ -1,1 +1,0 @@
-hw/camera_adapter/WARNING.md
