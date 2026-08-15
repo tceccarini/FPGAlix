@@ -1,0 +1,1 @@
+../../../../../sw/camera_driver_2/utils/debug/ov7670_dataif_ctrl.sh
